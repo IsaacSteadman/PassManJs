@@ -35,20 +35,17 @@ export class LoginForm {
     this.encKey = null;
     this.authKey = null;
   }
-  encryptAndSend(buf: ArrayBuffer) {
-    encryptAes256CBC(this.encKey, buf).then(outBuf => {
-      const json = {
-        data: arrayBufferToHexString(outBuf)
-      };
-      return json;
-    }).then(json => {
-      const sPass = this.serverAccess.passwordStr;
-      const user = this.username.value;
-      const pass = this.authKey;
-      return fetch(`pass-table?server_pass=${sPass}&username=${user}&password=${pass}`, {
-        method: 'PUT',
-        body: JSON.stringify(json)
-      });
+  async encryptAndSend(buf: ArrayBuffer) {
+    const outBuf = await encryptAes256CBC(this.encKey, buf);
+    const json = {
+      data: arrayBufferToHexString(outBuf)
+    };
+    const sPass = this.serverAccess.passwordStr;
+    const user = this.username.value;
+    const pass = this.authKey;
+    return fetch(`pass-table?server_pass=${sPass}&username=${user}&password=${pass}`, {
+      method: 'PUT',
+      body: JSON.stringify(json)
     });
   }
   handleEvent(e: Event) {
