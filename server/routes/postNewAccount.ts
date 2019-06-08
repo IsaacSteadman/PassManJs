@@ -32,7 +32,7 @@ export function putNewAccount(req: Request, res: Response) {
   off += hash.length;
   const dataToSave = Buffer.alloc(header.length + dataFromClient.length + 4);
   header.copy(dataToSave, 0);
-  const dv1 = new DataView(dataToSave);
+  const dv1 = new DataView(dataToSave.buffer);
   dv1.setUint32(header.length, dataFromClient.length, true);
   dataFromClient.copy(dataToSave, header.length + 4);
   writeFilePromise(path, dataToSave).then(x => {

@@ -24,7 +24,7 @@ export function putPassTable(req: Request, res: Response) {
     const dataToSave = Buffer.alloc(remainder.length + header.length + 4 + dataFromClient.length);
     header.copy(dataToSave);
     remainder.copy(dataToSave, dataToSave.length - remainder.length);
-    const dv = new DataView(dataToSave);
+    const dv = new DataView(dataToSave.buffer);
     dv.setUint32(header.length, dataFromClient.length, true);
     dataFromClient.copy(dataToSave, header.length + 4);
     return writeFilePromise(path, dataToSave);
