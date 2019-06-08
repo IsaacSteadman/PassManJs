@@ -1,0 +1,3 @@
+TODOs:
+change GET requests that involve username and password to PUT or POST requests with a request body
+move the username and password to the request body

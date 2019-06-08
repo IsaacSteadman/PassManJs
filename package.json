@@ -1,0 +1,25 @@
+{
+  "name": "pass-man-js",
+  "description": "WebApp Password manager",
+  "authors": "Isaac Steadman",
+  "version": "1.0.0",
+  "main": "dist-server/app.js",
+  "dependencies": {
+    "parcel": "^1.12.3",
+    "express": "^4.17.1",
+    "express-ws": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^10.14.8",
+    "typescript": "^3.5.1",
+    "@types/express": "^4.17.0",
+    "@types/express-ws": "^3.0.0"
+  },
+  "scripts": {
+    "build": "yarn run parcel build src/index.html",
+    "build-server": "yarn run tsc ./server/app.ts --target ES2015 --outDir ./dist-server --module commonjs",
+    "start-client": "yarn run parcel serve src/index.html",
+    "start-server": "yarn run build-server && node ./dist-server/app.js",
+    "start": "yarn run start-server"
+  }
+}
