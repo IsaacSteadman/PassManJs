@@ -7,3 +7,8 @@
 #content {
     border: solid 2px green;
 }
+#error-panel {
+    color: red;
+    background-color: black;
+    border: solid 2px grey;
+}

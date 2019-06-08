@@ -1,4 +1,5 @@
 import { arrayBufferToString, stringToArrayBuffer } from "./StrUtils";
+import { ErrorLog } from "./ErrorLog";
 
 const CELL_SITE_NAME_INDEX = 0;
 const CELL_SITE_LINK_INDEX = 1;
@@ -22,7 +23,8 @@ export class ContentArea {
   logoutBtn: HTMLButtonElement;
   onPostLogout: () => any;
   onPreLogout: (buf: ArrayBuffer) => Promise<any>;
-  constructor(div: HTMLDivElement) {
+  errorLog: ErrorLog;
+  constructor(div: HTMLDivElement, errorLog: ErrorLog) {
     this.div = div;
     this.tbl = div.getElementsByTagName('table')[0];
     this.changed = false;
@@ -35,6 +37,7 @@ export class ContentArea {
     }
     this.onPreLogout = null;
     this.onPostLogout = null;
+    this.errorLog = errorLog;
   }
   constructRow(data: PassTableRow, isEditing: boolean): HTMLTableRowElement {
     const tr = document.createElement('tr');

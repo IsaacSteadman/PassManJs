@@ -2,6 +2,7 @@ import { ServerAccessForm } from "./ServerAccessForm";
 import { stringToArrayBuffer, arrayBufferToHexString, hexStringToArrayBuffer } from "./StrUtils";
 import { ContentArea } from "./ContentArea";
 import { encryptAes256CBC, decryptAes256CBC } from "./CryptoUtils";
+import { ErrorLog } from "./ErrorLog";
 
 export class LoginForm {
   form: HTMLFormElement;
@@ -13,7 +14,8 @@ export class LoginForm {
   div: HTMLDivElement;
   contentArea: ContentArea;
   authKey: string;
-  constructor(div: HTMLDivElement, serverAccess: ServerAccessForm, contentArea: ContentArea) {
+  errorLog: ErrorLog;
+  constructor(div: HTMLDivElement, serverAccess: ServerAccessForm, contentArea: ContentArea, errorLog: ErrorLog) {
     this.contentArea = contentArea;
     contentArea.onPreLogout = buf => {
       return this.encryptAndSend(buf);
@@ -31,9 +33,11 @@ export class LoginForm {
     this.password = <HTMLInputElement>elems.namedItem('password');
     this.showPassword = <HTMLInputElement>elems.namedItem('show-password');
     this.showPassword.addEventListener('change', this);
+    this.form.addEventListener('submit', this);
     this.serverAccess = serverAccess;
     this.encKey = null;
     this.authKey = null;
+    this.errorLog = errorLog;
   }
   async encryptAndSend(buf: ArrayBuffer) {
     const outBuf = await encryptAes256CBC(this.encKey, buf);
@@ -43,13 +47,23 @@ export class LoginForm {
     const sPass = this.serverAccess.passwordStr;
     const user = this.username.value;
     const pass = this.authKey;
-    return fetch(`pass-table?server_pass=${sPass}&username=${user}&password=${pass}`, {
-      method: 'PUT',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(json)
+    return fetch(
+      `pass-table?server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(json)
+      }
+    ).then(res => {
+      return res.json().then(json => {
+        if (res.ok) return json;
+        else return Promise.reject(json);
+      });
+    }).catch(err => {
+      this.errorLog.logError(err);
     });
   }
   handleEvent(e: Event) {
@@ -99,13 +113,21 @@ export class LoginForm {
         const user = this.username.value;
         const pass = arrayBufferToHexString(buf);
         this.authKey = pass;
-        return fetch(`pass-table?server_pass=${sPass}&username=${user}&password=${pass}`, {
-          headers: {
-            'Accept': 'application/json'
+        return fetch(
+          `pass-table?server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`,
+          {
+            headers: {
+              'Accept': 'application/json'
+            }
           }
-        });
+        );
       })
-        .then(res => res.json())
+        .then(res => {
+          return res.json().then(json => {
+            if (res.ok) return json;
+            else return Promise.reject(json);
+          });
+        })
         .then(function (json: { data: string }) { return json.data; });
       Promise.all([encryptionKeyPromise, fetchDataPromise]).then(x => {
         const [encKey, data] = x;
@@ -113,6 +135,8 @@ export class LoginForm {
         return decryptAes256CBC(encKey, hexStringToArrayBuffer(data));
       }).then(buf => {
         this.contentArea.loadTableBuf(buf);
+      }).catch(err => {
+        this.errorLog.logError(err);
       });
     }
   }

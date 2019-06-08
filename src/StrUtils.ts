@@ -2,7 +2,7 @@ export function stringToArrayBuffer(str: string): ArrayBuffer {
   const enc = new TextEncoder();
   return enc.encode(str).buffer;
 }
-export function concatBuffers (a: ArrayBuffer, b: ArrayBuffer): ArrayBuffer {
+export function concatBuffers(a: ArrayBuffer, b: ArrayBuffer): ArrayBuffer {
   const res = new ArrayBuffer(a.byteLength + b.byteLength);
   {
     const src = new Uint8Array(a)
@@ -30,7 +30,7 @@ export function arrayBufferToString(buf: ArrayBuffer) {
  * @param {number | null} start
  * @param {number | null} end
  */
-export function hexStringToUint8Array (str, start, end) {
+export function hexStringToUint8Array(str, start, end) {
   if (end == null || end > str.length) {
     end = str.length;
   }
@@ -72,7 +72,7 @@ const CODE_a = 'a'.charCodeAt(0) - 10;
 export function hexStringToArrayBuffer(str: string): ArrayBuffer {
   if (str.length & 1) throw new Error('expected even length');
   const arr = new Uint8Array(str.length >> 1);
-  for (let i = 0, j = 0; i < str.length; i += 2,j) {
+  for (let i = 0, j = 0; i < str.length; i += 2, j) {
     const msd = str.charCodeAt(i);
     let msv = msd - CODE_0;
     if (msv >= 10) {
@@ -111,4 +111,9 @@ export function arrayBufferToHexString(buf: ArrayBuffer): string {
     str += digits.charAt(arr[i] >> 4) + digits.charAt(arr[i] & 0xF);
   }
   return str;
+}
+export function generateURLQuery(url: string, query: { [key: string]: string }) {
+  const arr = Object.keys(query);
+  if (arr.length === 0) return url;
+  return url + '?' + arr.map(k => `${k}=${encodeURIComponent(query[k])}`).join('&');
 }

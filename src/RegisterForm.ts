@@ -1,6 +1,7 @@
 import { ServerAccessForm } from "./ServerAccessForm";
 import { stringToArrayBuffer, arrayBufferToHexString, concatBuffers } from "./StrUtils";
 import { encryptAes256CBC } from "./CryptoUtils";
+import { ErrorLog } from "./ErrorLog";
 
 function sanitizeUsername(name: string) {
   if (typeof name !== 'string') return false;
@@ -23,7 +24,8 @@ export class RegisterForm {
   password: HTMLInputElement;
   showPassword: HTMLInputElement;
   confirmPassword: HTMLInputElement;
-  constructor(div: HTMLDivElement, serverAccess: ServerAccessForm) {
+  errorLog: ErrorLog;
+  constructor(div: HTMLDivElement, serverAccess: ServerAccessForm, errorLog: ErrorLog) {
     this.div = div;
     this.form = div.getElementsByTagName('form')[0];
     const elems = this.form.elements;
@@ -34,6 +36,7 @@ export class RegisterForm {
     this.showPassword.addEventListener('change', this);
     this.serverAccess = serverAccess;
     this.form.addEventListener('submit', this);
+    this.errorLog = errorLog;
   }
   handleEvent(e: Event) {
     if (e.currentTarget === this.showPassword) {
@@ -107,18 +110,23 @@ export class RegisterForm {
           .then(
             encBuf => {
               return fetch(
-                `pass-table?server_pass=${sPass}&username=${user}&new_pass=${pass}`,
+                `pass-table?server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&new_pass=${encodeURIComponent(pass)}`,
                 {
                   method: 'POST',
                   headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
                   },
-                  body: JSON.stringify({data: arrayBufferToHexString(encBuf)})
+                  body: JSON.stringify({ data: arrayBufferToHexString(encBuf) })
                 }
               ).catch(err => {
                 console.log('immediate fetch error');
                 return Promise.reject(err);
+              }).then(res => {
+                return res.json().then(json => {
+                  if (res.ok) return json;
+                  else return Promise.reject(json);
+                })
               });
             },
             err => {
@@ -127,15 +135,11 @@ export class RegisterForm {
             }
           );
       }).then(x => {
-        if (x.status >= 200 && x.status < 300) {
-          alert('account created successfully');
-        } else {
-          x.json().then(console.log);
-        }
+        alert('account created successfully');
       }).catch(err => {
         console.log('fetchDataPromise', err)
-        return Promise.reject(err);
-      });
+        this.errorLog.logError(err);
+      });;
     }
   }
 }
