@@ -11,7 +11,14 @@ export function putPassTable(req: Request, res: Response) {
   const dataFromClient = getBinaryBodyData(req, res);
   if (dataFromClient == null) return;
   const { path } = getUserInfo(username);
-  if (!existsSync(path)) return;
+  if (!existsSync(path)) {
+    res.status(400).json({
+      type: 'E_AUTH',
+      query_param: 'username|password',
+      message: 'username or password is incorrect'
+    });
+    return;
+  }
   getUserDataBuffer(path, password).then(userData => {
     const { remainder, header } = userData;
     const dataToSave = Buffer.alloc(remainder.length + header.length + 4 + dataFromClient.length);

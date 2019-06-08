@@ -9,7 +9,14 @@ export function getPassTable(req: Request, res: Response) {
   const password = getPassword(req, res);
   if (password == null) return;
   const { path } = getUserInfo(username);
-  if (!existsSync(path)) return;
+  if (!existsSync(path)) {
+    res.status(400).json({
+      type: 'E_AUTH',
+      query_param: 'username|password',
+      message: 'username or password is incorrect'
+    });
+    return;
+  }
   getUserDataBuffer(path, password).then(userData => {
     const { data } = userData;
     res.status(200).json({
