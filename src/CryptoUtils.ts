@@ -4,7 +4,7 @@ export function encryptAes256CBC(encKey: CryptoKey, data: ArrayBuffer): Promise<
   return Promise.resolve(crypto.subtle.encrypt(
     {
       name: 'AES-CBC',
-      length: 256,
+      // length: 256,
       iv: ivArr,
     },
     encKey,
@@ -26,15 +26,19 @@ export function encryptAes256CBC(encKey: CryptoKey, data: ArrayBuffer): Promise<
   });
 }
 export function decryptAes256CBC(encKey: CryptoKey, data: ArrayBuffer): Promise<ArrayBuffer> {
+  if (!(encKey instanceof CryptoKey)) throw new TypeError('expected cryptoKey');
   const iv = data.slice(0, 16);
   const encData = data.slice(16);
   return Promise.resolve(crypto.subtle.decrypt(
     {
       name: 'AES-CBC',
-      length: 256,
+      // length: 256,
       iv: iv
     },
     encKey,
     encData
-  ));
+  )).catch(err => {
+    console.log('decryptAes256CBC error', err);
+    return Promise.reject(err);
+  });
 }

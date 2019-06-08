@@ -14,10 +14,12 @@ export function putPassTable(req: Request, res: Response) {
   if (!existsSync(path)) return;
   getUserDataBuffer(path, password).then(userData => {
     const { remainder, header } = userData;
-    const dataToSave = Buffer.alloc(remainder.length + header.length + dataFromClient.length);
+    const dataToSave = Buffer.alloc(remainder.length + header.length + 4 + dataFromClient.length);
     header.copy(dataToSave);
     remainder.copy(dataToSave, dataToSave.length - remainder.length);
-    dataFromClient.copy(dataToSave, header.length);
+    const dv = new DataView(dataToSave);
+    dv.setUint32(header.length, dataFromClient.length, true);
+    dataFromClient.copy(dataToSave, header.length + 4);
     return writeFilePromise(path, dataToSave);
   }).catch(err => {
     res.status(400).json({

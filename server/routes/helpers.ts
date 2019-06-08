@@ -2,7 +2,7 @@ import { readFileSync, existsSync, readFile, writeFile } from 'fs';
 import { promisify } from 'util';
 import { resolve, join } from 'path';
 import { Request, Response } from "express";
-import { createHash, pbkdf2, randomBytes, pbkdf2Sync } from 'crypto';
+import { createHash, pbkdf2, randomBytes, pbkdf2Sync, timingSafeEqual } from 'crypto';
 import { SERVER_DATA_LOCATION, serverConfig } from '../consts';
 
 export const readFilePromise = promisify(readFile);
@@ -23,7 +23,7 @@ export const versionSettings = [
     pbkdf2Settings: function (params: any[]) {
       return {
         iterations: 10000,
-        keylen: 256,
+        keylen: 32,
         hash: 'sha256'
       }
     }
@@ -147,10 +147,12 @@ export async function getUserDataBuffer(path: string, password: Buffer): Promise
   const hashLen = dv.getUint16(off, true);
   off += 2;
   const end = off + saltLen + hashLen;
+  console.log('saltLen =', saltLen);
+  console.log('hashLen =', hashLen);
   const salt = buf.slice(off, off + saltLen);
   const hash = buf.slice(off + saltLen, end);
   const testHash = await pbkdf2Promise(password, salt, iterations, keylen, hashFn);
-  if (hash.equals(testHash)) {
+  if (timingSafeEqual(hash, testHash)) {
     const dataLen = dv.getUint32(end, true);
     return {
       params: params,
