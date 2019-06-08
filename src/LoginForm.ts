@@ -45,6 +45,10 @@ export class LoginForm {
     const pass = this.authKey;
     return fetch(`pass-table?server_pass=${sPass}&username=${user}&password=${pass}`, {
       method: 'PUT',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(json)
     });
   }
@@ -95,7 +99,11 @@ export class LoginForm {
         const user = this.username.value;
         const pass = arrayBufferToHexString(buf);
         this.authKey = pass;
-        return fetch(`pass-table?server_pass=${sPass}&username=${user}&password=${pass}`);
+        return fetch(`pass-table?server_pass=${sPass}&username=${user}&password=${pass}` {
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
       })
         .then(res => res.json())
         .then(function (json: { data: string }) { return json.data; });
