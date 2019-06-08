@@ -21,7 +21,7 @@ export class ContentArea {
   data: PassTableRow[];
   logoutBtn: HTMLButtonElement;
   onPostLogout: () => any;
-  onPreLogout: (buf: ArrayBuffer) => Promise;
+  onPreLogout: (buf: ArrayBuffer) => Promise<any>;
   constructor(div: HTMLDivElement) {
     this.div = div;
     this.tbl = div.getElementsByTagName('table')[0];
