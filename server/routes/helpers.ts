@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import { resolve, join } from 'path';
 import { Request, Response } from "express";
 import { createHash, pbkdf2, randomBytes, pbkdf2Sync } from 'crypto';
+import { SERVER_DATA_LOCATION, serverConfig } from '../consts';
 
 export const readFilePromise = promisify(readFile);
 export const writeFilePromise = promisify(writeFile);
@@ -56,8 +57,6 @@ export function sanitizeHex(str: string) {
 
 export const sanitizePassword = sanitizeHex;
 
-const serverConfig = JSON.parse(readFileSync(resolve(__dirname, '../../config.json'), 'utf8'));
-
 export function doServerAuth(req: Request, res: Response) {
   if (serverConfig.ServerAccessPassword !== req.query.server_pass) {
     res.status(400).json({ type: 'E_AUTH', query_param: 'server_pass', message: 'bad server access password' });
@@ -104,7 +103,7 @@ export function getBinaryBodyData(req: Request, res: Response): Buffer {
   }
   const badKeys = Object.keys(data).filter(x => x !== 'data');
   if (badKeys.length) {
-    res.status(400).json({type: 'E_INVAL', keys: badKeys, message: 'unexpected keys in json object request body'});
+    res.status(400).json({ type: 'E_INVAL', keys: badKeys, message: 'unexpected keys in json object request body' });
     return null;
   } else if (!sanitizeHex(data.data)) {
     res.status(400).json({ type: 'E_INVAL', message: 'POST request body must be json with one key: "data" which must be a hexadecimal string' });
@@ -113,14 +112,25 @@ export function getBinaryBodyData(req: Request, res: Response): Buffer {
   return Buffer.from(data.data, 'hex');
 }
 
-export function getUserInfo (username: string) {
-  const path = resolve(__dirname, '../../serverData', username)
+export function getUserInfo(username: string) {
+  const path = resolve(SERVER_DATA_LOCATION, username)
   return {
     path: path
   };
 }
 
-export async function getUserDataBuffer(path: string, password: Buffer): Promise<{ version: number, salt: Buffer, hash: Buffer, data: Buffer, remainder: Buffer, totalLen: number, header: Buffer, params: any[] }> {
+export interface UserDataBuffer {
+  version: number;
+  salt: Buffer;
+  hash: Buffer;
+  data: Buffer;
+  remainder: Buffer;
+  totalLen: number;
+  header: Buffer;
+  params: any[];
+}
+
+export async function getUserDataBuffer(path: string, password: Buffer): Promise<UserDataBuffer> {
   const buf = await readFilePromise(path);
   const dv = new DataView(buf);
   const version = dv.getUint32(0, true);
