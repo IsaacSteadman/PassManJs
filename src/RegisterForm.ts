@@ -107,9 +107,13 @@ export class RegisterForm {
           .then(
             encBuf => {
               return fetch(
-                `pass-table?server_pass=${sPass}&username=${user}&password=${pass}`,
+                `pass-table?server_pass=${sPass}&username=${user}&new_pass=${pass}`,
                 {
                   method: 'POST',
+                  headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                  },
                   body: JSON.stringify({data: arrayBufferToHexString(encBuf)})
                 }
               ).catch(err => {
