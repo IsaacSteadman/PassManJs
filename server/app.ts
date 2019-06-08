@@ -1,25 +1,16 @@
-import {readFileSync, existsSync, readFile, writeFile} from 'fs';
+import {readFileSync, existsSync, readFile, writeFile, mkdirSync, } from 'fs';
 import * as express from 'express';
-import { Request, Response } from 'express';
-import { resolve, join } from 'path';
-// import expressWsModule from 'express-ws';
+import { resolve, } from 'path';
 import { createServer } from 'http';
-import { Buffer } from 'buffer';
-import {createHash, pbkdf2, randomBytes, pbkdf2Sync} from 'crypto';
 import * as bodyParser from 'body-parser';
 import { getPassTable } from './routes/getPassTable';
 import { putPassTable } from './routes/putPassTable';
 import { passTableNewPass } from './routes/passTableNewPass';
 import { putNewAccount as postNewAccount } from './routes/postNewAccount';
+import { CORS, DEBUG, PORT } from './consts';
 
-const PORT = 3050;
-const CORS = false;
-
-const appNoWs = express();
-const server = createServer(appNoWs);
-// const expressWs = expressWsModule(appNoWs, server);
-// const app = expressWs.app;
-const app = appNoWs;
+const app = express();
+const server = createServer(app);
 
 if (CORS) {
   app.use(function (req, res, next) {
@@ -32,6 +23,15 @@ if (CORS) {
 
 app.use(express.static(resolve(__dirname, '../dist')));
 app.use(bodyParser.json({limit: '50mb'}));
+
+if (DEBUG) {
+  app.use(function (req, res, next) {
+    console.log(`${req.method} ${req.url}`);
+    console.log('req.query = '+ JSON.stringify(req.query, null, 2));
+    console.log(`req.body = ${JSON.stringify(req.body, null, 2)}`);
+    next();
+  });
+}
 
 app.get('/pass-table', getPassTable);
 app.put('/pass-table', putPassTable);
