@@ -7,7 +7,12 @@ import { getPassTable } from './routes/getPassTable';
 import { putPassTable } from './routes/putPassTable';
 import { passTableNewPass } from './routes/passTableNewPass';
 import { putNewAccount as postNewAccount } from './routes/postNewAccount';
-import { CORS, DEBUG, PORT } from './consts';
+import { CORS, DEBUG, PORT, SERVER_DATA_LOCATION } from './consts';
+
+if (!existsSync(SERVER_DATA_LOCATION)) {
+  console.log('creating directory at', SERVER_DATA_LOCATION);
+  mkdirSync(SERVER_DATA_LOCATION);
+}
 
 const app = express();
 const server = createServer(app);
