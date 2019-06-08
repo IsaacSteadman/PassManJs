@@ -37,7 +37,9 @@ export class RegisterForm {
   }
   handleEvent(e: Event) {
     if (e.currentTarget === this.showPassword) {
-      this.password.setAttribute('type', this.showPassword.checked ? 'text' : 'password');
+      const type = this.showPassword.checked ? 'text' : 'password';
+      this.password.setAttribute('type', type);
+      this.confirmPassword.setAttribute('type', type);
     } else if (e.currentTarget === this.form) {
       e.preventDefault();
       if (this.password.value !== this.confirmPassword.value) {
