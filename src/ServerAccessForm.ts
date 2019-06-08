@@ -19,20 +19,18 @@ export class ServerAccessForm {
     this.form = form;
     const elems = form.elements;
     this.password = <HTMLInputElement>elems.namedItem('server_pass');
+    this.password.addEventListener('change', this);
     this.showPassword = <HTMLInputElement>elems.namedItem('show-server-pass');
     this.showPassword.addEventListener('change', this);
-    this.passwordStr = '';
+    this.passwordStr = this.password.value;
   }
   handleEvent(e: Event) {
     if (e.currentTarget === this.showPassword) {
       this.password.setAttribute('type', this.showPassword.checked ? 'text' : 'password');
+    } else if (e.currentTarget === this.password) {
+      this.passwordStr = this.password.value;
     } else if (e.currentTarget === this.form) {
       e.preventDefault();
-      if (!sanitizeHex(this.password.value)) {
-        alert('server access password must be hexadecimal');
-        return;
-      }
-      this.passwordStr = this.password.value;
     }
   }
 }
