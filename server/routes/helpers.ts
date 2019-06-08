@@ -132,7 +132,7 @@ export interface UserDataBuffer {
 
 export async function getUserDataBuffer(path: string, password: Buffer): Promise<UserDataBuffer> {
   const buf = await readFilePromise(path);
-  const dv = new DataView(buf);
+  const dv = new DataView(buf.buffer);
   const version = dv.getUint32(0, true);
   if (version !== 0) {
     return Promise.reject({ type: 'E_BAD_VER', version: version });
