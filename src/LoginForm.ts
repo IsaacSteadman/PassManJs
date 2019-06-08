@@ -99,7 +99,7 @@ export class LoginForm {
         const user = this.username.value;
         const pass = arrayBufferToHexString(buf);
         this.authKey = pass;
-        return fetch(`pass-table?server_pass=${sPass}&username=${user}&password=${pass}` {
+        return fetch(`pass-table?server_pass=${sPass}&username=${user}&password=${pass}`, {
           headers: {
             'Accept': 'application/json'
           }
