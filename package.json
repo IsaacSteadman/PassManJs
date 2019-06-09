@@ -15,7 +15,7 @@
     "typescript": "^3.5.1"
   },
   "scripts": {
-    "build": "yarn run parcel build src/index.html",
+    "build-client": "yarn run parcel build src/index.html",
     "build-server": "yarn run tsc ./server/app.ts --target ES2015 --outDir ./dist-server --module commonjs",
     "start-client": "yarn run parcel serve src/index.html",
     "start-server": "yarn run build-server && node ./dist-server/app.js",
