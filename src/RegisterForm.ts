@@ -70,7 +70,7 @@ export class RegisterForm {
             name: 'PBKDF2',
             salt: stringToArrayBuffer(this.username.value),
             hash: 'SHA-256',
-            iterations: 5000
+            iterations: 100000
           },
           key,
           {
@@ -90,7 +90,7 @@ export class RegisterForm {
             name: 'PBKDF2',
             salt: new Uint8Array([1, 2, 3, 4]),
             hash: 'SHA-256',
-            iterations: 5000
+            iterations: 100000
           },
           key,
           256
@@ -117,7 +117,7 @@ export class RegisterForm {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
                   },
-                  body: JSON.stringify({ data: arrayBufferToHexString(encBuf) })
+                  body: JSON.stringify({ data: '00000000' + arrayBufferToHexString(encBuf) })
                 }
               ).catch(err => {
                 console.log('immediate fetch error');

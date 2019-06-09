@@ -1,0 +1,56 @@
+#login {
+  border: solid 2px red;
+}
+
+#register {
+  border: solid 2px blue;
+}
+
+#content {
+  border: solid 2px green;
+
+  >table {
+    >thead>tr>th {
+      &.adder,&.remover {
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      &.adder {
+        border-color: #070;
+      }
+      &.adder:hover {
+        background-color: #DFD;
+      }
+    }
+    >tbody>tr>td {
+      &.editor {
+        border-color: #007;
+        cursor: pointer;
+        border-radius: 3px;
+      }
+      &.editor:hover {
+        background-color: #DDF;
+      }
+      &.remover {
+        border-color: #700;
+        cursor: pointer;
+        border-radius: 3px;
+      }
+      &.remover:hover {
+        background-color: #FDD;
+      }
+    }
+    th,td {
+      border-width: 1px;
+      border-style: solid;
+      padding: 2px;
+    }
+    // border-collapse: collapse;
+  }
+}
+
+#error-panel {
+  color           : red;
+  background-color: black;
+  border          : solid 2px grey;
+}

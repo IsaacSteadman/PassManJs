@@ -28,6 +28,8 @@ export function putPassTable(req: Request, res: Response) {
     dv.setUint32(header.length, dataFromClient.length, true);
     dataFromClient.copy(dataToSave, header.length + 4);
     return writeFilePromise(path, dataToSave);
+  }).then(x => {
+    res.status(200).json({type: 'SUCCESS', message: 'successfully saved password table'});
   }).catch(err => {
     res.status(400).json({
       type: 'E_AUTH',

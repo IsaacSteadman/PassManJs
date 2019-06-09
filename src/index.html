@@ -5,7 +5,48 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Pass Man JS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" media="screen" href="main.css">
+    <link rel="stylesheet" type="text/css" media="screen" href="main.less">
+    <script>
+        (function () {
+            var tests = [];
+            window.addTest = function (name, fn) {
+                tests.push({name: name, fn: fn});
+            }
+            window.assertEqual = function (a, b, msg) {
+                msg = msg || '';
+                if (a !== b) {
+                    throw new Error(msg);
+                }
+            }
+            window.assertArrayEqual = function (a, b, msg) {
+                if (a.length !== b.length) {
+                    throw new Error(msg);
+                }
+                for (var i = 0; i < a.length; ++i) {
+                    if (a[i] !== b[i]) {
+                        throw new Error(msg);
+                    }
+                }
+            }
+            document.addEventListener('DOMContentLoaded', function (e) {
+                tests.forEach(function (x) {
+                    var name = x.name;
+                    var fn = x.fn;
+                    var pass = false;
+                    try {
+                        fn();
+                        pass = true;
+                    } catch (exc) {
+                        console.error('TEST FAILED:', name);
+                        console.error(exc);
+                    }
+                    if (pass) {
+                        console.log('TEST PASSED:', name);
+                    }
+                })
+            })
+        })();
+    </script>
     <script src="main.ts"></script>
 </head>
 <body>
@@ -30,6 +71,7 @@
         </form>
     </div>
     <div id="content" style="display:none">
+        STATUS: <span name="stat-span"></span> <button name="save">Save</button>
         <table>
             <thead>
                 <tr>
@@ -38,7 +80,7 @@
                     <th>Username</th>
                     <th>Password</th>
                     <th>Edit/Save</th>
-                    <th>Add New</th>
+                    <th class="adder">Add New</th>
                 </tr>
             </thead>
             <tbody></tbody>

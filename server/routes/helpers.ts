@@ -22,7 +22,7 @@ export const versionSettings = [
     },
     pbkdf2Settings: function (params: any[]) {
       return {
-        iterations: 10000,
+        iterations: 100000,
         keylen: 32,
         hash: 'sha256'
       }

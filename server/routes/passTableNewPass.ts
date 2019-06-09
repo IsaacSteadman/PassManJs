@@ -26,5 +26,14 @@ export function passTableNewPass(req: Request, res: Response) {
     remainder.copy(dataToSave, dataToSave.length - remainder.length);
     dataFromClient.copy(dataToSave, header.length);
     return writeFilePromise(path, dataToSave);
+  }).then(x => {
+    res.status(200).json({type: 'SUCCESS', message: 'successfully saved password table under a different password'});
+  }).catch(err => {
+    res.status(400).json({
+      type: 'E_AUTH',
+      query_param: 'username|password',
+      message: 'username or password is incorrect'
+    });
+    console.log(err);
   });
 };
