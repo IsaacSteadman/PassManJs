@@ -205,7 +205,7 @@ export class ContentArea {
       a.innerText = 'link';
       tdSiteLink.innerHTML = '';
       tdSiteLink.appendChild(a);
-      tdEditCell.innerText = 'SAVE';
+      tdEditCell.innerText = 'EDIT';
       if (jsonRow.siteName !== siteName) {
         jsonRow.siteName = siteName;
         this.changed = true;
