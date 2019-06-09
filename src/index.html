@@ -50,12 +50,12 @@
     <script src="main.ts"></script>
 </head>
 <body>
-    <form id="serverAccess">Server Access Password: <input type="password" name="server_pass"/> (show) <input type="checkbox" name="show-server-pass"/> <br/></form>
+    <form id="serverAccess">Server Access Password: <input type="password" name="server_pass" value="Hail Hydra 123"/> (show) <input type="checkbox" name="show-server-pass"/> <br/></form>
     <div id="login">
         Login to an existing account
         <form>
-            Username: <input type="text" name="username"/> <br/>
-            Password: <input type="password" name="password"/> (show) <input type="checkbox" name="show-password"/> <br/>
+            Username: <input type="text" name="username" value="Isaac"/> <br/>
+            Password: <input type="password" name="password" value="1234"/> (show) <input type="checkbox" name="show-password"/> <br/>
             <input type="submit" name="submit" value="Login"/> <br/>
             Don't have an account? <a href="#" onclick="document.getElementById('login').style.display='none';document.getElementById('register').style.display='';">Register Here</a>.
         </form>
@@ -71,20 +71,11 @@
         </form>
     </div>
     <div id="content" style="display:none">
-        STATUS: <span name="stat-span"></span> <button name="save">Save</button>
-        <table>
-            <thead>
-                <tr>
-                    <th>Site Name</th>
-                    <th>Site Link</th>
-                    <th>Username</th>
-                    <th>Password</th>
-                    <th>Edit/Save</th>
-                    <th class="adder">Add New</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        STATUS: <span name="stat-span"></span> <button name="save">Save</button> <br/>
+        <div name="data">
+            Import CSV: <input type="file" name="csv-import"/> <br/>
+            <button name="do-import">Do Import</button> <br/>
+        </div>
         <button name="logout">Logout</button>
     </div>
     <div id="error-panel">

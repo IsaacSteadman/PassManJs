@@ -16,6 +16,30 @@ function sanitizeUsername(name: string) {
   return true;
 };
 
+const defaultJson = [
+  {
+    title: 'Passwords',
+    spec: [
+      { name: 'Site Name', type: 'text' },
+      { name: 'Site Link', type: 'link' },
+      { name: 'Username', type: 'text' },
+      { name: 'Password', type: 'password' }
+    ],
+    data: []
+  },
+  {
+    title: 'Credit Cards',
+    spec: [
+      { name: 'Name', type: 'text' },
+      { name: 'Expiry Date', type: 'text' },
+      { name: 'Billing Address', type: 'text' },
+      { name: 'Number', type: 'password' },
+      { name: 'Securty Code', type: 'password' },
+    ],
+    data: []
+  }
+];
+
 export class RegisterForm {
   div: HTMLDivElement;
   form: HTMLFormElement;
@@ -37,6 +61,9 @@ export class RegisterForm {
     this.serverAccess = serverAccess;
     this.form.addEventListener('submit', this);
     this.errorLog = errorLog;
+    const type = this.showPassword.checked ? 'text' : 'password';
+    this.password.setAttribute('type', type);
+    this.confirmPassword.setAttribute('type', type);
   }
   handleEvent(e: Event) {
     if (e.currentTarget === this.showPassword) {
@@ -106,7 +133,7 @@ export class RegisterForm {
         const pass = arrayBufferToHexString(authKeyBuf);
         const header = new ArrayBuffer(4);
         (new DataView(header)).setUint32(0, 0x80000000, true);
-        return encryptAes256CBC(encKey, concatBuffers(header, stringToArrayBuffer('[]')))
+        return encryptAes256CBC(encKey, concatBuffers(header, stringToArrayBuffer(JSON.stringify(defaultJson))))
           .then(
             encBuf => {
               return fetch(

@@ -40,6 +40,7 @@ export class LoginForm {
     this.encKey = null;
     this.authKey = null;
     this.errorLog = errorLog;
+    this.password.setAttribute('type', this.showPassword.checked ? 'text' : 'password');
   }
   async encryptAndSend(buf: ArrayBuffer) {
     const outBuf = await encryptAes256CBC(this.encKey, buf);

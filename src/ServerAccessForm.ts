@@ -23,6 +23,7 @@ export class ServerAccessForm {
     this.showPassword = <HTMLInputElement>elems.namedItem('show-server-pass');
     this.showPassword.addEventListener('change', this);
     this.passwordStr = this.password.value;
+    this.password.setAttribute('type', this.showPassword.checked ? 'text' : 'password');
   }
   handleEvent(e: Event) {
     if (e.currentTarget === this.showPassword) {
