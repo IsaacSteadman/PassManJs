@@ -1,6 +1,6 @@
 import { arrayBufferToString, stringToArrayBuffer, concatBuffers } from "./StrUtils";
 import { ErrorLog } from "./ErrorLog";
-import { getPromiseFileReader, FR_AS_TXT, readCSV } from "./fileUtils";
+import { getPromiseFileReader, FR_AS_TXT, readCSV } from "./FileUtils";
 
 interface PassTableRow {
   siteName: string;
