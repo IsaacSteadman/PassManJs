@@ -28,7 +28,7 @@ class PasswordTable {
   tbl: HTMLTableElement;
   tHead: HTMLTableSectionElement;
   tBody: HTMLTableSectionElement;
-  data: any[][];
+  readonly data: string[][];
   thAddNew: HTMLTableHeaderCellElement;
   onSetChanged: (b: boolean) => any;
   fileImport: HTMLInputElement;
@@ -111,7 +111,7 @@ class PasswordTable {
         csvData.forEach(csvRow => {
           docFrag.appendChild(this.constructRow(csvRow, false));
         });
-        this.data = this.data.concat(csvData);
+        this.data.splice(this.data.length, 0, ...csvData);
         this.tBody.appendChild(docFrag);
         this.onSetChanged(true);
       })
