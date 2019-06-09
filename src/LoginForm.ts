@@ -25,6 +25,8 @@ export class LoginForm {
       this.authKey = null;
       this.username.value = '';
       this.password.value = '';
+      this.div.style.display = '';
+      this.contentArea.div.style.display = 'none';
     };
     this.div = div;
     this.form = div.getElementsByTagName('form')[0];
