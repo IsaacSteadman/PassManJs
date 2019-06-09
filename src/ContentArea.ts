@@ -143,7 +143,8 @@ class PasswordTable {
           td.innerText = data[i];
         } else if (spec.type === 'link') {
           const a = document.createElement('a');
-          a.setAttribute('href', data[i].trim());
+          a.href = data[i].trim();
+          a.setAttribute('target', '_blank');
           a.innerText = 'Link';
           td.appendChild(a);
         } else if (spec.type === 'password') {
@@ -187,6 +188,7 @@ class PasswordTable {
             jsonRow[i] = link;
           }
           const a = document.createElement('a');
+          a.setAttribute('target', '_blank');
           a.href = link;
           a.innerText = 'Link'
           td.innerHTML = '';
