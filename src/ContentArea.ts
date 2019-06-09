@@ -69,6 +69,7 @@ class PasswordTable {
     this.fileImport.type = 'file';
     this.fileImport.setAttribute('accept', '.csv');
     this.fileImport.addEventListener('change', this);
+    div.appendChild(document.createTextNode('Import CSV: '));
     div.appendChild(this.fileImport);
     div.appendChild(document.createTextNode('Import Top Row?'));
     this.importTopRow = document.createElement('input');
@@ -89,6 +90,7 @@ class PasswordTable {
       const arr = constructArray('', this.spec.length);
       this.data.push(arr)
       this.tBody.appendChild(this.constructRow(arr, true));
+      this.onSetChanged(true);
     } else if (tgt.tagName === 'TD') {
       const tr = <HTMLTableRowElement>tgt.parentElement;
       if (tgt.classList.contains('remover')) {
@@ -209,8 +211,7 @@ class PasswordTable {
         const spec = this.spec[i];
         if (spec.type === 'text') {
         } else if (spec.type === 'link') {
-          const link = (<HTMLAnchorElement>td.children[0]).href;
-          td.innerText = link;
+          td.innerText = jsonRow[i];
         } else if (spec.type === 'password') {
           td.innerText = jsonRow[i];
         }
