@@ -58,7 +58,9 @@ export function sanitizeHex(str: string) {
 export const sanitizePassword = sanitizeHex;
 
 export function doServerAuth(req: Request, res: Response) {
-  if (serverConfig.ServerAccessPassword !== req.query.server_pass) {
+  const server = Buffer.from(serverConfig.ServerAccessPassword, 'utf8');
+  const client = Buffer.from(req.query.server_pass, 'utf8')
+  if (!timingSafeEqual(server, client)) {
     res.status(400).json({ type: 'E_AUTH', query_param: 'server_pass', message: 'bad server access password' });
     return false;
   }
