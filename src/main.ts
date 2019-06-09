@@ -21,5 +21,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const loginForm = new LoginForm(login, serverAccessForm, contentArea, errorLog);
   const registerForm = new RegisterForm(register, serverAccessForm, errorLog);
+  window['contentArea'] = contentArea;
+  window['loginForm'] = loginForm;
+  window['registerForm'] = registerForm;
 
 })
