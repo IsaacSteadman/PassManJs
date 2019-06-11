@@ -266,6 +266,7 @@ export class ContentArea {
     this.onPostLogout = null;
     this.errorLog = errorLog;
     this.tables = [];
+    window.addEventListener('beforeunload', this);
   }
   set changed(b: boolean) {
     this._changed = true;
@@ -322,6 +323,13 @@ export class ContentArea {
     this.changed = false;
   }
   handleEvent(e: Event) {
+    if (e.currentTarget === window) {
+      if (this.changed) {
+        e.preventDefault();
+        e.returnValue = <any>'Data you have entered may not be saved';
+      }
+      return;
+    }
     const tgt = <Element>e.currentTarget
     if (tgt === this.saveBtn) {
       const ver = new ArrayBuffer(4);
@@ -342,6 +350,7 @@ export class ContentArea {
         this.changed = false;
         this.onPostLogout();
       });
+    } else if (tgt === Window) {
     }
   }
 }
