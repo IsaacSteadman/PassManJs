@@ -19,5 +19,5 @@ export const DEBUG = (
   (
     Object.prototype.hasOwnProperty.call(serverConfig, 'Debug')
     && typeof serverConfig.Debug === 'boolean')
-  ? serverConfig.Debug : true
+  ? serverConfig.Debug : false
 );
