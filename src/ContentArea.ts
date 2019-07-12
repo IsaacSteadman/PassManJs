@@ -269,7 +269,7 @@ export class ContentArea {
     window.addEventListener('beforeunload', this);
   }
   set changed(b: boolean) {
-    this._changed = true;
+    this._changed = b;
     if (b) {
       this.div.style.borderColor = 'red';
       this.statSpan.style.color = 'red';
