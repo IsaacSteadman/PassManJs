@@ -350,7 +350,6 @@ export class ContentArea {
         this.changed = false;
         this.onPostLogout();
       });
-    } else if (tgt === Window) {
     }
   }
 }
