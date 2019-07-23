@@ -79,7 +79,7 @@ export class PassGen {
     this.div = div;
     this.errorLog = errorLog;
     if (typeof BigInt === 'undefined') {
-      div.innerHTML = '<p><span style="color: red; font-weight: bold; font-size: 24px">Your browser is too old.</span> Use a browser that supports the new <pre style="color:cyan;font-style: italic">BigInt</pre></p>';
+      div.innerHTML = '<p><span style="color: red; font-weight: bold; font-size: 24px">Your browser is too old.</span><br/>In order to use PassGen, use a browser that supports the new <span style="display:inline;color:darkcyan;font-style: italic;font-family:consolas">BigInt</span> standard.</p>';
       return;
     }
     this.form = div.getElementsByTagName('form')[0];
