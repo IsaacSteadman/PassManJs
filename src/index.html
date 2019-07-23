@@ -76,6 +76,21 @@
         </div>
         <button name="logout">Logout</button>
     </div>
+    <div id="passgen-panel">
+      <form>
+        <select name="charset"></select>
+        <input type="button" value="Reset Charset" name="reset-charset"/>
+        <input type="text" value="" name="charset-input"/> <br/>
+        Bit length: <input type="number" min="0" step="1" name="bitlength" value="112"/> <br/>
+        Must Have Uppercase? <input type="checkbox" name="chk-upper"/> <br/>
+        Must Have Lowercase? <input type="checkbox" name="chk-lower"/> <br/>
+        Must Have Digit? <input type="checkbox" name="chk-digit"/> <br/>
+        Must Have Symbol? <input type="checkbox" name="chk-symbol"/> <br/>
+        Can Have Spaces? <input type="checkbox" name="chk-spaces"/> <br/>
+        <input type="submit" value="Generate Password"/>
+        <input type="text" name="password" style="font-family: 'Courier New';width:25em"/>
+      </form>
+    </div>
     <div id="error-panel">
         <pre></pre>
     </div>
