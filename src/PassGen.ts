@@ -1,16 +1,5 @@
 import { ErrorLog } from "./ErrorLog";
 
-class Charset {
-  name: string;
-  chars: string;
-  constructor(name: string, chars: string) {
-    this.name = name;
-    this.chars = chars;
-  }
-}
-
-const allChars = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~';
-
 const upperAlpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const lowerAlpha = 'abcdefghijklmnopqrstuvwxyz';
 const digits = '0123456789';
