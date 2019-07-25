@@ -48,10 +48,16 @@ export class LoginForm {
       data: '00000000' + arrayBufferToHexString(outBuf)
     };
     const sPass = this.serverAccess.passwordStr;
+    const sNamespace = this.serverAccess.namespaceStr;
     const user = this.username.value;
     const pass = this.authKey;
+    const uri = (
+      sNamespace.length
+      ? `pass-table?server_ns=${encodeURIComponent(sNamespace)}&server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
+      : `pass-table?server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
+    );
     return fetch(
-      `pass-table?server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`,
+      uri,
       {
         method: 'PUT',
         headers: {
@@ -113,11 +119,17 @@ export class LoginForm {
       });
       const fetchDataPromise = authenticationKeyPromise.then(buf => {
         const sPass = this.serverAccess.passwordStr;
+        const sNamespace = this.serverAccess.namespaceStr;
         const user = this.username.value;
         const pass = arrayBufferToHexString(buf);
         this.authKey = pass;
+        const uri = (
+          sNamespace.length
+          ? `pass-table?server_ns=${encodeURIComponent(sNamespace)}&server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
+          : `pass-table?server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
+        );
         return fetch(
-          `pass-table?server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`,
+          uri,
           {
             headers: {
               'Accept': 'application/json'

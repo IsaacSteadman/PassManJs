@@ -129,15 +129,21 @@ export class RegisterForm {
       const fetchDataPromise = Promise.all([authenticationKeyPromise, encryptionKeyPromise]).then(x => {
         const [authKeyBuf, encKey] = x;
         const sPass = this.serverAccess.passwordStr;
+        const sNamespace = this.serverAccess.namespaceStr;
         const user = this.username.value;
         const pass = arrayBufferToHexString(authKeyBuf);
         const header = new ArrayBuffer(4);
+        const uri = (
+          sNamespace.length
+          ? `pass-table?server_ns=${encodeURIComponent(sNamespace)}&server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&new_pass=${encodeURIComponent(pass)}`
+          : `pass-table?server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&new_pass=${encodeURIComponent(pass)}`
+        );
         (new DataView(header)).setUint32(0, 0x80000000, true);
         return encryptAes256CBC(encKey, concatBuffers(header, stringToArrayBuffer(JSON.stringify(defaultJson))))
           .then(
             encBuf => {
               return fetch(
-                `pass-table?server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&new_pass=${encodeURIComponent(pass)}`,
+                uri,
                 {
                   method: 'POST',
                   headers: {

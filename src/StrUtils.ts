@@ -83,3 +83,14 @@ export function generateURLQuery(url: string, query: { [key: string]: string }) 
   if (arr.length === 0) return url;
   return url + '?' + arr.map(k => `${k}=${encodeURIComponent(query[k])}`).join('&');
 }
+export function getUrlParams (url: string): {[key: string]: string} {
+  const rtn = {};
+  const pos = url.indexOf('?');
+  if (pos !== -1) {
+    url.substring(pos + 1).split('&').forEach(x => {
+      const i = x.indexOf('=');
+      rtn[x.substring(0, i)] = decodeURIComponent(x.substring(i + 1));
+    })
+  }
+  return rtn;
+}
