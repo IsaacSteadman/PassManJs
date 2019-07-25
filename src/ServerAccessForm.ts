@@ -1,3 +1,5 @@
+import { getUrlParams } from "./StrUtils";
+
 function sanitizeHex(str: string) {
   if (typeof str !== 'string') return false;
   if (str.length & 1) return false;
@@ -14,6 +16,8 @@ export class ServerAccessForm {
   form: HTMLFormElement;
   password: HTMLInputElement;
   showPassword: HTMLInputElement;
+  namespace: HTMLInputElement;
+  namespaceStr: string;
   passwordStr: string;
   constructor(form: HTMLFormElement) {
     this.form = form;
@@ -22,7 +26,17 @@ export class ServerAccessForm {
     this.password.addEventListener('change', this);
     this.showPassword = <HTMLInputElement>elems.namedItem('show-server-pass');
     this.showPassword.addEventListener('change', this);
+    this.namespace = <HTMLInputElement>elems.namedItem('server_ns');
+    this.namespace.addEventListener('change', this);
+    const params = getUrlParams(window.location.href);
+    if (params.server_pass != null) {
+      this.password.value = params.server_pass;
+    }
+    if (params.server_ns != null) {
+      this.namespace.value = params.server_ns;
+    }
     this.passwordStr = this.password.value;
+    this.namespaceStr = this.namespace.value;
     this.password.setAttribute('type', this.showPassword.checked ? 'text' : 'password');
   }
   handleEvent(e: Event) {
@@ -30,6 +44,8 @@ export class ServerAccessForm {
       this.password.setAttribute('type', this.showPassword.checked ? 'text' : 'password');
     } else if (e.currentTarget === this.password) {
       this.passwordStr = this.password.value;
+    } else if (e.currentTarget === this.namespace) {
+      this.namespaceStr = this.namespace.value;
     } else if (e.currentTarget === this.form) {
       e.preventDefault();
     }
