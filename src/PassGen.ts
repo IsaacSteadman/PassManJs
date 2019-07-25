@@ -73,7 +73,7 @@ export class PassGen {
   chkSymbol: HTMLInputElement;
   passwordOutput: HTMLInputElement;
   btnGenerate: HTMLInputElement;
-  charsetInput: HTMLInputElement;
+  symbolCharset: HTMLInputElement;
   chkHasSpaces: HTMLInputElement;
   constructor(div: HTMLDivElement, errorLog: ErrorLog) {
     this.div = div;
@@ -85,9 +85,8 @@ export class PassGen {
     this.form = div.getElementsByTagName('form')[0];
     this.bitlength = <HTMLInputElement>this.form.children.namedItem('bitlength');
     this.resetCharset = <HTMLButtonElement>this.form.children.namedItem('reset-charset');
-    this.charset = <HTMLSelectElement>this.form.children.namedItem('charset');
-    this.charsetInput = <HTMLInputElement>this.form.children.namedItem('charset-input');
-    this.charsetInput.value = symbols;
+    this.symbolCharset = <HTMLInputElement>this.form.children.namedItem('symbol-charset');
+    this.symbolCharset.value = symbols;
     this.chkUpper = <HTMLInputElement>this.form.children.namedItem('chk-upper');
     this.chkLower = <HTMLInputElement>this.form.children.namedItem('chk-lower');
     this.chkDigit = <HTMLInputElement>this.form.children.namedItem('chk-digit');
@@ -102,7 +101,7 @@ export class PassGen {
   handleEvent(evt: UIEvent) {
     if (evt.currentTarget === this.charset) {
     } else if (evt.currentTarget === this.resetCharset) {
-      this.charsetInput.value = symbols;
+      this.symbolCharset.value = symbols;
     } else if (evt.currentTarget === this.form) {
       // submit
       evt.preventDefault();
@@ -114,7 +113,7 @@ export class PassGen {
         });
         return;
       }
-      const symbolsAllowed = this.charsetInput.value;
+      const symbolsAllowed = this.symbolCharset.value;
       const stCheck = new Set(upperAlpha + lowerAlpha + digits);
       const unexpectedChars = new Set();
       for (let i = 0; i < symbolsAllowed.length; ++i) {
