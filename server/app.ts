@@ -27,6 +27,7 @@ if (CORS) {
 }
 
 app.use(express.static(resolve(__dirname, '../dist')));
+app.use('/icons', express.static(resolve(__dirname, '../icons')));
 app.use(bodyParser.json({limit: '50mb'}));
 
 if (DEBUG) {
@@ -41,7 +42,7 @@ if (DEBUG) {
 app.get('/pass-table', getPassTable);
 app.put('/pass-table', putPassTable);
 app.put('/pass-table-new-pass', passTableNewPass);
-app.post('/pass-table', postNewAccount)
+app.post('/pass-table', postNewAccount);
 
 /* app.ws('/app-ws', (ws, req) => {
   const userMsg = (data) => {

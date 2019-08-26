@@ -1,13 +1,7 @@
 import { arrayBufferToString, stringToArrayBuffer, concatBuffers } from "./StrUtils";
 import { ErrorLog } from "./ErrorLog";
 import { getPromiseFileReader, FR_AS_TXT, readCSV } from "./FileUtils";
-
-interface PassTableRow {
-  siteName: string;
-  siteLink: string;
-  username: string;
-  password: string;
-}
+import { EditTable, MultiLineTextColSpec, LinkTextColSpec, PasswordTextColSpec } from "./EditTable";
 
 interface PassTableColumnSpec {
   name: string;
@@ -23,6 +17,72 @@ function constructArray<T>(fill: T, length: number): Array<T> {
 }
 
 class PasswordTable {
+  editTable: EditTable;
+  readonly data: string[][];
+  parent: ContentArea;
+  onSetChanged: (b: boolean) => any;
+  constructor(parent: ContentArea, div: HTMLDivElement, title: string, spec: PassTableColumnSpec[], data: string[][]) {
+    {
+      const span = document.createElement('span');
+      span.innerText = title;
+      div.appendChild(span);
+    }
+    const tbl = document.createElement('table');
+    {
+      div.appendChild(tbl);
+      tbl.appendChild(document.createElement('tbody'));
+      const thead = document.createElement('thead');
+      tbl.appendChild(thead);
+      const tr = document.createElement('tr');
+      thead.appendChild(tr);
+      for (let i = 0; i < spec.length; ++i) {
+        const th = document.createElement('th');
+        th.innerText = spec[i].name;
+        tr.appendChild(th);
+      }
+      tr.appendChild(document.createElement('th'));
+    }
+    this.editTable = new EditTable(<{ [key: string]: any }[]>data, tbl, spec.map((spec, i) => {
+      if (spec.type === 'text') {
+        return <MultiLineTextColSpec>{
+          type: 'multi-line-text',
+          attrName: '' + i
+        };
+      } else if (spec.type === 'link') {
+        return <LinkTextColSpec>{
+          type: 'link-text',
+          attrName: '' + i
+        };
+      } else if (spec.type === 'password') {
+        return <PasswordTextColSpec>{
+          type: 'password-text',
+          attrName: '' + i
+        };
+      }
+    }), true);
+    this.data = data;
+    this.parent = parent;
+    {
+      const tbody = tbl.tBodies[0];
+      for (let i = 0; i < this.data.length; ++i) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td></td>'.repeat(spec.length + 1);
+        tbody.appendChild(tr);
+        this.editTable.makeStatic(tr);
+      }
+    }
+    this.editTable.createDefaultData = () => {
+      return constructArray('', spec.length);
+    };
+    this.editTable.onChangeCallback = (arg, dataIndex) => {
+      if (typeof this.onSetChanged === 'function') {
+        this.onSetChanged(true);
+      }
+    };
+  }
+}
+
+class PasswordTableOld {
   spec: PassTableColumnSpec[];
   div: HTMLDivElement;
   tbl: HTMLTableElement;

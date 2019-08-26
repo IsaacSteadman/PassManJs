@@ -26,6 +26,9 @@
             background-color: #DFD;
           }
         }
+        >tbody>tr {
+          border-top: solid 1px black
+        }
         >tbody>tr>td {
           &.editor {
             border-color: #007;
@@ -45,11 +48,20 @@
           }
         }
         th,td {
-          border-width: 1px;
-          border-style: solid;
-          padding: 2px;
+          padding: 5px;
+          text-align: left;
+          >img[data-action="copy"] {
+            float: right;
+          }
+          border-left: solid 1px grey;
         }
-        // border-collapse: collapse;
+        th:last-child {
+          text-align: center;
+        }
+        th:first-child,td:first-child {
+          border-left: none;
+        }
+        border-collapse: collapse;
       }
     }
   }
