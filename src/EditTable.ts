@@ -132,7 +132,7 @@ function dispStatic(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any) {
         pre.innerText = str;
         pre.style.display = 'none';
         td.appendChild(pre);
-        const img = makeIconImage('/icons/copy.svg', 'copy');
+        const img = makeIconImage('copy');
         img.addEventListener('click', passwordTextCopyListener);
         td.appendChild(img);
       }
@@ -324,9 +324,18 @@ function dispEdit(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any, who
   }
 }
 
-function makeIconImage(path: string, action: string): HTMLImageElement {
+const iconPaths = {
+  add: '/icons/add.svg',
+  done: '/icons/done.svg',
+  cancel: '/icons/close.svg',
+  edit: '/icons/edit.svg',
+  delete: '/icons/delete_outline.svg',
+  copy: '/icons/copy.svg'
+};
+
+function makeIconImage(action: string): HTMLImageElement {
   const img = document.createElement('img');
-  img.src = path;
+  img.src = iconPaths[action];
   img.setAttribute('data-action', action);
   img.width = 24;
   img.height = 24;
@@ -357,7 +366,7 @@ export class EditTable {
     this.onChangeCallback = null
     if (this.allowAddRemove) {
       const th = this.thead.rows[0].cells[this.controlColumn];
-      const addImg = makeIconImage('/icons/add.svg', 'add');
+      const addImg = makeIconImage('add');
       th.appendChild(addImg);
       addImg.addEventListener('click', this);
     }
@@ -373,8 +382,8 @@ export class EditTable {
     }
     const control = tr.cells[this.controlColumn];
     control.innerHTML = '';
-    const doneImg = makeIconImage('/icons/done.svg', 'done');
-    const closeImg = makeIconImage('/icons/close.svg', 'cancel');
+    const doneImg = makeIconImage('done');
+    const closeImg = makeIconImage('cancel');
     control.appendChild(doneImg);
     control.appendChild(closeImg);
     doneImg.addEventListener('click', this);
@@ -392,11 +401,11 @@ export class EditTable {
     if (rowData._doEditButtons == null || rowData._doEditButtons) {
       const control = tr.cells[this.controlColumn];
       control.innerHTML = '';
-      const editImg = makeIconImage('/icons/edit.svg', 'edit');
+      const editImg = makeIconImage('edit');
       control.appendChild(editImg);
       editImg.addEventListener('click', this);
       if (this.allowAddRemove) {
-        const removeImg = makeIconImage('/icons/delete_outline.svg', 'delete');
+        const removeImg = makeIconImage('delete');
         control.appendChild(removeImg);
         removeImg.addEventListener('click', this);
       }
