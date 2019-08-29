@@ -9,7 +9,7 @@ const policies = {};
 
 const policyPath = resolve(__dirname, '../policies.json');
 
-async function loadPolicies () {
+async function loadPolicies() {
   const str = await readFilePromise(policyPath, 'utf8');
   const data = JSON.parse(str);
   if (data instanceof Array) throw new TypeError('expected object (got array) for file "policies.json"');

@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Pass Man JS</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" media="screen" href="main.less">
-    <!--<script>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Pass Man JS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" media="screen" href="main.less">
+  <!--<script>
         (function () {
             var tests = [];
             window.addTest = function (name, fn) {
@@ -47,54 +48,62 @@
             })
         })();
     </script>-->
-    <script src="main.ts"></script>
+  <script src="main.ts"></script>
 </head>
+
 <body>
-    <form id="serverAccess">
-      Server Access Namespace: <input type="text" name="server_ns"/> <br/>
-      Server Access Password: <input type="password" name="server_pass"/> (show) <input type="checkbox" name="show-server-pass"/>
+  <form id="serverAccess">
+    Server Access Namespace: <input type="text" name="server_ns" /> <br />
+    Server Access Password: <input type="password" name="server_pass" /> (show) <input type="checkbox"
+      name="show-server-pass" />
+  </form>
+  <div id="login">
+    Login to an existing account
+    <form>
+      Username: <input type="text" name="username" /> <br />
+      Password: <input type="password" name="password" /> (show) <input type="checkbox" name="show-password" /> <br />
+      <input type="submit" name="submit" value="Login" /> <br />
+      Don't have an account? <a href="#"
+        onclick="document.getElementById('login').style.display='none';document.getElementById('register').style.display='';">Register
+        Here</a>.
     </form>
-    <div id="login">
-        Login to an existing account
-        <form>
-            Username: <input type="text" name="username"/> <br/>
-            Password: <input type="password" name="password"/> (show) <input type="checkbox" name="show-password"/> <br/>
-            <input type="submit" name="submit" value="Login"/> <br/>
-            Don't have an account? <a href="#" onclick="document.getElementById('login').style.display='none';document.getElementById('register').style.display='';">Register Here</a>.
-        </form>
+  </div>
+  <div id="register" style="display:none;">
+    Register for an account
+    <form>
+      Username: <input type="text" name="username" /> <br />
+      Password: <input type="password" name="new_pass" /> (show) <input type="checkbox" name="show-new-pass" /> <br />
+      Confirm Password <input type="password" name="confirm_new_pass" /> <br />
+      <input type="submit" name="submit" value="Register" /> <br />
+      Already have an account? <a href="#"
+        onclick="document.getElementById('register').style.display='none';document.getElementById('login').style.display='';">Login
+        Here</a>.
+    </form>
+  </div>
+  <div id="content" style="display:none">
+    STATUS: <span name="stat-span"></span> <button name="save">Save</button> <br />
+    <div name="data">
     </div>
-    <div id="register" style="display:none;">
-        Register for an account
-        <form>
-            Username: <input type="text" name="username"/> <br/>
-            Password: <input type="password" name="new_pass"/> (show) <input type="checkbox" name="show-new-pass"/> <br/>
-            Confirm Password <input type="password" name="confirm_new_pass"/> <br/>
-            <input type="submit" name="submit" value="Register"/> <br/>
-            Already have an account? <a href="#" onclick="document.getElementById('register').style.display='none';document.getElementById('login').style.display='';">Login Here</a>.
-        </form>
-    </div>
-    <div id="content" style="display:none">
-        STATUS: <span name="stat-span"></span> <button name="save">Save</button> <br/>
-        <div name="data">
-        </div>
-        <button name="logout">Logout</button>
-    </div>
-    <div id="passgen-panel">
-      <form>
-        Specify Allowed Symbols: <input type="text" value="" style="font-family: 'Courier New';width:25em" name="symbol-charset"/>
-        <input type="button" value="Reset Charset" name="reset-charset"/> <br/>
-        Bit length: <input type="number" min="0" step="1" name="bitlength" value="112"/> <br/>
-        Must Have Uppercase? <input type="checkbox" name="chk-upper"/> <br/>
-        Must Have Lowercase? <input type="checkbox" name="chk-lower"/> <br/>
-        Must Have Digit? <input type="checkbox" name="chk-digit"/> <br/>
-        Must Have Symbol? <input type="checkbox" name="chk-symbol"/> <br/>
-        Can Have Spaces? <input type="checkbox" name="chk-spaces"/> <br/>
-        <input type="submit" value="Generate Password"/>
-        <input type="text" name="password" style="font-family: 'Courier New';width:25em"/>
-      </form>
-    </div>
-    <div id="error-panel">
-        <pre></pre>
-    </div>
+    <button name="logout">Logout</button>
+  </div>
+  <div id="passgen-panel">
+    <form>
+      Specify Allowed Symbols: <input type="text" value="" style="font-family: 'Courier New';width:25em"
+        name="symbol-charset" />
+      <input type="button" value="Reset Charset" name="reset-charset" /> <br />
+      Bit length: <input type="number" min="0" step="1" name="bitlength" value="112" /> <br />
+      Must Have Uppercase? <input type="checkbox" name="chk-upper" /> <br />
+      Must Have Lowercase? <input type="checkbox" name="chk-lower" /> <br />
+      Must Have Digit? <input type="checkbox" name="chk-digit" /> <br />
+      Must Have Symbol? <input type="checkbox" name="chk-symbol" /> <br />
+      Can Have Spaces? <input type="checkbox" name="chk-spaces" /> <br />
+      <input type="submit" value="Generate Password" />
+      <input type="text" name="password" style="font-family: 'Courier New';width:25em" />
+    </form>
+  </div>
+  <div id="error-panel">
+    <pre></pre>
+  </div>
 </body>
+
 </html>

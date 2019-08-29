@@ -7,60 +7,79 @@
 }
 
 #content {
-  border: solid 2px green;
+  border : solid 2px green;
   padding: 5px;
+
   >div[name="data"] {
     >div {
       margin: 5px;
       border: solid 2px blue;
+
       >table {
         >thead>tr>th {
-          &.adder,&.remover {
+
+          &.adder,
+          &.remover {
             border-radius: 3px;
-            cursor: pointer;
+            cursor       : pointer;
           }
+
           &.adder {
             border-color: #070;
           }
+
           &.adder:hover {
             background-color: #DFD;
           }
         }
+
         >tbody>tr {
           border-top: solid 1px black
         }
+
         >tbody>tr>td {
           &.editor {
-            border-color: #007;
-            cursor: pointer;
+            border-color : #007;
+            cursor       : pointer;
             border-radius: 3px;
           }
+
           &.editor:hover {
             background-color: #DDF;
           }
+
           &.remover {
-            border-color: #700;
-            cursor: pointer;
+            border-color : #700;
+            cursor       : pointer;
             border-radius: 3px;
           }
+
           &.remover:hover {
             background-color: #FDD;
           }
         }
-        th,td {
-          padding: 5px;
+
+        th,
+        td {
+          padding   : 5px;
           text-align: left;
+
           >img[data-action="copy"] {
             float: right;
           }
+
           border-left: solid 1px grey;
         }
+
         th:last-child {
           text-align: center;
         }
-        th:first-child,td:first-child {
+
+        th:first-child,
+        td:first-child {
           border-left: none;
         }
+
         border-collapse: collapse;
       }
     }

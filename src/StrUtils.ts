@@ -83,7 +83,7 @@ export function generateURLQuery(url: string, query: { [key: string]: string }) 
   if (arr.length === 0) return url;
   return url + '?' + arr.map(k => `${k}=${encodeURIComponent(query[k])}`).join('&');
 }
-export function getUrlParams (url: string): {[key: string]: string} {
+export function getUrlParams(url: string): { [key: string]: string } {
   const rtn = {};
   const pos = url.indexOf('?');
   if (pos !== -1) {

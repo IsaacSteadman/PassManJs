@@ -53,8 +53,8 @@ export class LoginForm {
     const pass = this.authKey;
     const uri = (
       sNamespace.length
-      ? `pass-table?server_ns=${encodeURIComponent(sNamespace)}&server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
-      : `pass-table?server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
+        ? `pass-table?server_ns=${encodeURIComponent(sNamespace)}&server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
+        : `pass-table?server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
     );
     return fetch(
       uri,
@@ -125,8 +125,8 @@ export class LoginForm {
         this.authKey = pass;
         const uri = (
           sNamespace.length
-          ? `pass-table?server_ns=${encodeURIComponent(sNamespace)}&server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
-          : `pass-table?server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
+            ? `pass-table?server_ns=${encodeURIComponent(sNamespace)}&server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
+            : `pass-table?server_pass=${encodeURIComponent(sPass)}&username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
         );
         return fetch(
           uri,
@@ -150,7 +150,7 @@ export class LoginForm {
         const cipherTextBuf = hexStringToArrayBuffer(data);
         const ver = (new DataView(cipherTextBuf)).getUint32(0, true);
         if (ver !== 0) {
-          return Promise.reject({type: 'E_CLIENT_ENCRYPTION_UNSUPPORTED', message: `client does not support version ${ver}`})
+          return Promise.reject({ type: 'E_CLIENT_ENCRYPTION_UNSUPPORTED', message: `client does not support version ${ver}` })
         }
         return decryptAes256CBC(encKey, cipherTextBuf.slice(4));
       }).then(buf => {

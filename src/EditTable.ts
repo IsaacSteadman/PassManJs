@@ -225,7 +225,7 @@ function getData(cs: ValidColSpec, td: HTMLTableDataCellElement): any {
   }
 }
 
-function dispEdit(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any, wholeData: {[key: string]: any}) {
+function dispEdit(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any, wholeData: { [key: string]: any }) {
   if (cs.editIsStatic) {
     dispStatic(cs, td, data);
     return;
@@ -246,8 +246,8 @@ function dispEdit(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any, who
         const str = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <string>data;
         const isMultiLine = (
           cs.type === 'text'
-          ? wholeData[cs.attrNameIsMultiLine]
-          : (cs.type === 'multi-line-text')
+            ? wholeData[cs.attrNameIsMultiLine]
+            : (cs.type === 'multi-line-text')
         );
         const elem = document.createElement(isMultiLine ? 'textarea' : 'input');
         if (cs.type === 'single-line-text' || cs.type === 'link-text' || cs.type == 'password-text') {
