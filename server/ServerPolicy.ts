@@ -2,7 +2,7 @@ import { serverConfig } from "./consts";
 import { Request, Response } from "express";
 import { timingSafeEqual } from "crypto";
 import { resolve } from 'path';
-import { readFile, writeFile, watchFile } from 'fs';
+import { watchFile } from 'fs';
 import { writeFilePromise, readFilePromise } from "./routes/helpers";
 
 const policies = {};
@@ -66,7 +66,22 @@ export class ServerPolicy {
       if (policies[this.policyName] !== this.policyData) {
         throw new TypeError('expected to be same object (for thread safety reasons)')
       }
-      const data = JSON.stringify(policies);
+      let n = serverConfig.PrettyPoliciesJson;
+      if (n == null) {
+      } else if (typeof n !== 'number') {
+        console.log('expected a number for serverConfig.PrettyPoliciesJson');
+        n = null;
+      } else if (n < 0) {
+        console.log('expected number >= 0 for serverConfig.PrettyPoliciesJson');
+        n = null;
+      } else if ((n | 0) !== n) {
+        console.log('expected positive integer for serverConfig.PrettyPoliciesJson');
+        n = null;
+      } else if (n > 24) {
+        console.log('expected positive integer <= 24 for serverConfig.PrettyPoliciesJson');
+        n = null;
+      }
+      const data = JSON.stringify(policies, null, n);
       await writeFilePromise(policyPath, data, 'utf8');
     }
   }
