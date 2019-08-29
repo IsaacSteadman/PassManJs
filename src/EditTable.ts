@@ -1,3 +1,5 @@
+import { createIcon } from "./icons";
+
 interface ColumnSpecification {
   type: 'static' | 'single-line-text' | 'multi-line-text' | 'text' | 'link-text' | 'password-text' | 'option' | 'boolean' | 'number' | 'custom' | 'tri-state';
   header?: string;
@@ -333,15 +335,12 @@ const iconPaths = {
   copy: '/icons/copy.svg'
 };
 
-function makeIconImage(action: string): HTMLImageElement {
-  const img = document.createElement('img');
-  img.src = iconPaths[action];
-  img.setAttribute('data-action', action);
-  img.width = 24;
-  img.height = 24;
-  img.style.width = '24px';
-  img.style.height = '24px';
-  return img;
+function makeIconImage(action: string): HTMLImageElement | SVGSVGElement {
+  const svg = createIcon(action);
+  svg.setAttribute('data-action', action);
+  svg.style.width = '24px';
+  svg.style.height = '24px';
+  return svg;
 }
 
 export class EditTable {
@@ -383,7 +382,7 @@ export class EditTable {
     const control = tr.cells[this.controlColumn];
     control.innerHTML = '';
     const doneImg = makeIconImage('done');
-    const closeImg = makeIconImage('cancel');
+    const closeImg = makeIconImage('close');
     control.appendChild(doneImg);
     control.appendChild(closeImg);
     doneImg.addEventListener('click', this);
@@ -432,7 +431,7 @@ export class EditTable {
   }
   handleEvent(e: UIEvent) {
     const tgt = <HTMLElement>e.currentTarget;
-    if (tgt.tagName === 'IMG' && tgt.getAttribute('data-action') != null) {
+    if (tgt.getAttribute('data-action') != null) {
       const action = tgt.getAttribute('data-action');
       const tr = <HTMLTableRowElement>tgt.parentElement.parentElement;
       if (action === 'done') {
@@ -441,7 +440,7 @@ export class EditTable {
         if (changed) {
           this.onChangeCallback(this, tr.rowIndex - 1);
         }
-      } else if (action === 'cancel') {
+      } else if (action === 'close') {
         this.makeStatic(tr);
       } else if (action === 'edit') {
         this.makeEditable(tr);
