@@ -17,10 +17,9 @@ async function loadPolicies() {
   for (const k in policies) {
     if (data[k] == null) {
       delete policies[k];
-    } else {
-      data[k] = policies[k];
     }
   }
+  Object.assign(policies, data);
 }
 
 loadPolicies().then(x => {
