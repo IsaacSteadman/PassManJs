@@ -84,6 +84,7 @@ class LimitedPolicy extends ServerPolicy {
     if (this.policyData.MaxDataSize != null && data.length > this.policyData.MaxDataSize) {
       return false;
     }
+    this.policyData.NumAccounts = n;
     return true;
   }
   updateAccountHook(username: string, data: Buffer): boolean {
