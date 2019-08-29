@@ -22,7 +22,14 @@ async function loadPolicies() {
   Object.assign(policies, data);
 }
 
-loadPolicies().then(x => {
+loadPolicies().catch(async function (err) {
+  if (err.code === 'ENOENT') {
+    console.log('no policies.json found, creating a new one');
+    await writeFilePromise(policyPath, '{}', 'utf8');
+  } else {
+    return Promise.reject(err);
+  }
+}).then(x => {
   watchFile(policyPath, async function (curr, prev) {
     console.log('reloading policies');
     try {
@@ -32,14 +39,7 @@ loadPolicies().then(x => {
       console.error('error reloading policies');
       console.error(exc);
     }
-  })
-}, async function (err) {
-  if (err.code === 'ENOENT') {
-    console.log('no policies.json found, creating a new one');
-    await writeFilePromise(policyPath, '{}', 'utf8');
-  } else {
-    return Promise.reject(err);
-  }
+  });
 });
 
 export class ServerPolicy {
