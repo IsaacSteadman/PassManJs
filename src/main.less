@@ -52,9 +52,10 @@
 
           >td {
             width: 150px;
+
             input,
             textarea {
-              width: 150px;
+              width  : 150px;
               height : 28px;
               border : 0px;
               margin : 0px;
@@ -90,9 +91,20 @@
           text-align: left;
           padding   : 0px;
 
+          >img,
+          >svg {
+            cursor: pointer;
+          }
+
           >img[data-action="copy"],
           >svg[data-action="copy"] {
             float: right;
+          }
+
+          >svg[data-action="copy"]:hover {
+            >rect:first-of-type {
+              fill: #DDF;
+            }
           }
 
           >svg[data-action="delete"] {

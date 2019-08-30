@@ -40,7 +40,7 @@ const paths = [
   { name: 'edit', url: '/icons/edit.svg' }
 ];
 
-const svgImages: {[key: string]: SVGSVGElement} = {};
+const svgImages: { [key: string]: SVGSVGElement } = {};
 
 async function loadImages() {
   console.log('loading images');
@@ -62,6 +62,125 @@ async function loadImages() {
 
 export const loadedImagesPromise = loadImages();
 
-export function createIcon(action: string): SVGSVGElement {
-  return <SVGSVGElement>svgImages[action].cloneNode(true);
+class CustomAnimation {
+  elem: HTMLElement | SVGElement;
+  intervalIndex: number;
+  style: { [key: string]: (index: number) => string; };
+  numFrames: number;
+  durationMs: number;
+  interval: any;
+  attrs: { [key: string]: (index: number) => string; };
+  clearAtEnd: boolean;
+  endData: [{ [key: string]: string }, { [key: string]: string }];
+  constructor(
+    style: { [key: string]: (index: number) => string },
+    attrs: { [key: string]: (index: number) => string },
+    durationMs: number,
+    numFrames: number,
+    clearAtEnd: boolean = true,
+    endData: [{ [key: string]: string }, { [key: string]: string }] = null
+  ) {
+    this.interval = null;
+    this.intervalIndex = 0;
+    this.style = style;
+    this.attrs = attrs;
+    this.elem = null;
+    this.numFrames = numFrames;
+    this.durationMs = durationMs;
+    this.clearAtEnd = clearAtEnd;
+    this.endData = endData;
+  }
+  stepInterval() {
+    let i = this.intervalIndex++;
+    if (i >= this.numFrames) {
+      i = 0;
+      clearInterval(this.interval);
+      this.interval = null;
+      if (!this.clearAtEnd) return;
+      if (this.endData != null) {
+        const [style, attrs] = this.endData;
+        const {elem} = this;
+        for (const k in style) {
+          const attr = style[k];
+          elem.style[k] = attr;
+        }
+        for (const k in attrs) {
+          const attr = attrs[k];
+          elem.setAttribute(k, attr);
+        }
+        return;
+      }
+    }
+    const { style, attrs, elem } = this;
+    for (const k in style) {
+      const attr = style[k](i);
+      elem.style[k] = attr;
+    }
+    for (const k in attrs) {
+      const attr = attrs[k](i);
+      elem.setAttribute(k, attr);
+    }
+  }
+  execute(elem: SVGElement | HTMLElement) {
+    this.elem = elem;
+    if (this.interval != null) {
+      clearInterval(this.interval);
+    }
+    this.intervalIndex = 0;
+    this.stepInterval();
+    this.interval = setInterval(() => this.stepInterval(), this.durationMs / this.numFrames);
+  }
+  stop() {
+    if (this.interval != null) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+  }
+}
+
+function easeIn(t: number, p: number) {
+  return Math.pow(t, p);
+}
+
+function easeOut(t: number, p: number) {
+  return 1 - Math.pow(1 - t, p);
+}
+
+const rippleAnim = new CustomAnimation(
+  {}, {
+    r: (index) => '' + (12 * easeOut(index / 25, 3))
+  }, 300, 42, false
+);
+
+const otherRipple = new CustomAnimation(
+  {}, {
+    'opacity': (index) => '' + 0.2 * (1 - easeIn(index / 42, 2))
+  }, 500, 42, false, [{}, { 'opacity': '0.2', 'r': '0' }]
+);
+
+function doRippleEffect(ev: MouseEvent) {
+  const tgt = <SVGSVGElement>ev.currentTarget;
+  const circle = tgt.getElementsByTagName('circle')[0];
+  circle.setAttribute('opacity', '0.2');
+  rippleAnim.execute(circle);
+  const fn = () => {
+    rippleAnim.stop();
+    otherRipple.execute(circle);
+    tgt.removeEventListener('mouseup', fn);
+    tgt.removeEventListener('mouseleave', fn);
+    tgt.removeEventListener('touchend', fn);
+  };
+  tgt.addEventListener('mouseup', fn);
+  tgt.addEventListener('mouseleave', fn);
+  tgt.addEventListener('touchend', fn);
+}
+
+export function createIcon(action: string, clickListener: ((this: SVGSVGElement, ev: MouseEvent) => any) | { handleEvent: (ev: MouseEvent) => any }): SVGSVGElement {
+  const svg = <SVGSVGElement>svgImages[action].cloneNode(true);
+  svg.addEventListener('click', clickListener);
+  if (action === 'copy') {
+    svg.addEventListener('mousedown', doRippleEffect);
+    svg.addEventListener('touchstart', doRippleEffect);
+  }
+  return svg;
 }

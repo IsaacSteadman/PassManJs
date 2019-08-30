@@ -134,8 +134,7 @@ function dispStatic(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any) {
         pre.innerText = str;
         pre.style.display = 'none';
         td.appendChild(pre);
-        const img = makeIconImage('copy');
-        img.addEventListener('click', passwordTextCopyListener);
+        const img = makeIconImage('copy', passwordTextCopyListener);
         td.appendChild(img);
       }
       break;
@@ -335,8 +334,8 @@ const iconPaths = {
   copy: '/icons/copy.svg'
 };
 
-function makeIconImage(action: string): HTMLImageElement | SVGSVGElement {
-  const svg = createIcon(action);
+function makeIconImage(action: string, listener: ((this: SVGSVGElement, ev: MouseEvent) => any) | { handleEvent: (ev: MouseEvent) => any; }): HTMLImageElement | SVGSVGElement {
+  const svg = createIcon(action, listener);
   svg.setAttribute('data-action', action);
   svg.style.width = '24px';
   svg.style.height = '24px';
@@ -365,9 +364,8 @@ export class EditTable {
     this.onChangeCallback = null
     if (this.allowAddRemove) {
       const th = this.thead.rows[0].cells[this.controlColumn];
-      const addImg = makeIconImage('add');
+      const addImg = makeIconImage('add', this);
       th.appendChild(addImg);
-      addImg.addEventListener('click', this);
     }
   }
   makeEditable(tr: HTMLTableRowElement) {
@@ -381,12 +379,10 @@ export class EditTable {
     }
     const control = tr.cells[this.controlColumn];
     control.innerHTML = '';
-    const doneImg = makeIconImage('done');
-    const closeImg = makeIconImage('close');
+    const doneImg = makeIconImage('done', this);
+    const closeImg = makeIconImage('close', this);
     control.appendChild(doneImg);
     control.appendChild(closeImg);
-    doneImg.addEventListener('click', this);
-    closeImg.addEventListener('click', this);
   }
   makeStatic(tr: HTMLTableRowElement) {
     const dataIndex = tr.rowIndex - 1;
@@ -400,11 +396,11 @@ export class EditTable {
     if (rowData._doEditButtons == null || rowData._doEditButtons) {
       const control = tr.cells[this.controlColumn];
       control.innerHTML = '';
-      const editImg = makeIconImage('edit');
+      const editImg = makeIconImage('edit', this);
       control.appendChild(editImg);
       editImg.addEventListener('click', this);
       if (this.allowAddRemove) {
-        const removeImg = makeIconImage('delete');
+        const removeImg = makeIconImage('delete', this);
         control.appendChild(removeImg);
         removeImg.addEventListener('click', this);
       }
