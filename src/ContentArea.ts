@@ -16,12 +16,38 @@ function constructArray<T>(fill: T, length: number): Array<T> {
   return arr;
 }
 
+function cloneData(data: string[][]): string[][] {
+  const newData = [];
+  for (let y = 0; y < data.length; ++y) {
+    const part = [];
+    for (let x = 0; x < data[y].length; ++x) {
+      part.push(data[y][x]);
+    }
+    newData.push(part);
+  }
+  return newData;
+}
+
+function arrayEquals(arr1: string[], arr2: string[]): boolean {
+  if (arr1.length !== arr2.length) {
+    return false;
+  }
+  for (let i = 0; i < arr1.length; ++i) {
+    if (arr1[i] !== arr2[i]) return false;
+  }
+  return true;
+}
+
 class PasswordTable {
   editTable: EditTable;
   readonly data: string[][];
   parent: ContentArea;
   search: HTMLInputElement;
   onSetChanged: (b: boolean) => any;
+  importBtn: HTMLButtonElement;
+  spec: PassTableColumnSpec[];
+  highlightDiffs: HTMLInputElement;
+  oldData: string[][];
   constructor(parent: ContentArea, div: HTMLDivElement, title: string, spec: PassTableColumnSpec[], data: string[][]) {
     {
       const span = document.createElement('span');
@@ -30,21 +56,9 @@ class PasswordTable {
     }
     div.appendChild(document.createElement('br'));
     this.search = document.createElement('input');
-    this.search.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        this.search.value = '';
-        this.editTable.search(new SearchHelper((str) => true));
-      }
-    })
     div.appendChild(this.search);
-    this.search.addEventListener('input', () => {
-      const v = this.search.value.toLowerCase();
-      if (v.length) {
-        this.editTable.search(new SearchHelper((str) => str.toLowerCase().indexOf(v) !== -1));
-      } else {
-        this.editTable.search(new SearchHelper((str) => true));
-      }
-    });
+    this.search.addEventListener('keydown', this);
+    this.search.addEventListener('input', this);
     div.appendChild(document.createElement('br'));
     const tbl = document.createElement('table');
     {
@@ -61,6 +75,10 @@ class PasswordTable {
       }
       tr.appendChild(document.createElement('th'));
     }
+    this.importBtn = document.createElement('button');
+    this.importBtn.addEventListener('click', this);
+    this.importBtn.innerText = 'Import CSV'
+    div.appendChild(this.importBtn);
     this.editTable = new EditTable(<{ [key: string]: any }[]>data, tbl, spec.map((spec, i) => {
       if (spec.type === 'text') {
         return <MultiLineTextColSpec>{
@@ -79,6 +97,8 @@ class PasswordTable {
         };
       }
     }), true);
+    this.spec = spec;
+    this.oldData = cloneData(data);
     this.data = data;
     this.parent = parent;
     {
@@ -98,6 +118,89 @@ class PasswordTable {
         this.onSetChanged(true);
       }
     };
+    this.highlightDiffs = document.createElement('input');
+    this.highlightDiffs.type = 'checkbox';
+    this.highlightDiffs.checked = false;
+    this.highlightDiffs.addEventListener('change', this);
+    div.appendChild(document.createElement('br'));
+    div.appendChild(document.createTextNode('Highlight Differences'));
+    div.appendChild(this.highlightDiffs);
+  }
+  handleEvent(e: UIEvent) {
+    if (e.currentTarget === this.search) {
+      if (e instanceof KeyboardEvent) {
+        if (e.key === 'Escape') {
+          this.search.value = '';
+          this.editTable.search(new SearchHelper((str) => true));
+        }
+      } else if (e.type === 'input') {
+        const v = this.search.value.toLowerCase();
+        if (v.length) {
+          this.editTable.search(new SearchHelper((str) => str.toLowerCase().indexOf(v) !== -1));
+        } else {
+          this.editTable.search(new SearchHelper((str) => true));
+        }
+      }
+    } else if (e.currentTarget === this.importBtn) {
+      this.parent.impPane.show(this);
+    } else if (e.currentTarget === this.highlightDiffs) {
+      this.updateDiffs();
+    }
+  }
+  updateDiffs() {
+    const v = this.highlightDiffs.checked;
+    if (v) {
+      const rows = this.editTable.tbody.rows;
+      for (let i = 0; i < rows.length; ++i) {
+        if (i >= this.oldData.length) {
+          rows[i].style.border = 'solid 1px blue';
+        } else if (!arrayEquals(this.oldData[i], this.data[i])) {
+          rows[i].style.border = 'solid 1px red';
+        }
+      }
+    } else {
+      const rows = this.editTable.tbody.rows;
+      for (let i = 0; i < rows.length; ++i) {
+        rows[i].style.border = '';
+      }
+    }
+  }
+  importData(data: string[][], options: { overwriteExisting: boolean }) {
+    const newEntries = options.overwriteExisting ? [] : data;
+    if (options.overwriteExisting) {
+      const findFunction = (entSearch: string[]): number => {
+        for (let i = 0; i < this.data.length; ++i) {
+          const row = this.data[i];
+          let cond = true;
+          for (let c = 0; c < this.spec.length && cond; ++c) {
+            if (this.spec[c].type === 'text') {
+              cond = row[c] === entSearch[c];
+            }
+          }
+          if (cond) {
+            return i;
+          }
+        }
+        return -1;
+      };
+      data.forEach(newDataRow => {
+        const pos = findFunction(newDataRow);
+        if (pos === -1) {
+          newEntries.push(newDataRow);
+        } else {
+          this.data[pos] = newDataRow;
+          this.editTable.makeStatic(this.editTable.tbody.rows[pos]);
+        }
+      });
+    }
+    const start = this.data.length;
+    this.data.splice(start, 0, ...newEntries);
+    for (let i = start; i < this.data.length; ++i) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td></td>'.repeat(this.data[i].length + 1);
+      this.editTable.tbody.appendChild(tr);
+      this.editTable.makeStatic(tr);
+    }
   }
 }
 
@@ -107,10 +210,62 @@ interface PassTableJson {
   data: string[][]
 }
 
+class ImportOptions {
+  parent: ContentArea;
+  form: HTMLFormElement;
+  impFile: HTMLInputElement;
+  overwriteExisting: HTMLInputElement;
+  tbl: PasswordTable;
+  showTs: number;
+  constructor(parent: ContentArea, form: HTMLFormElement) {
+    this.parent = parent;
+    this.form = form;
+    this.tbl = null
+    this.impFile = <HTMLInputElement>form.children.namedItem('imp-file'); // type="file"
+    this.overwriteExisting = <HTMLInputElement>form.children.namedItem('overwrite'); // type="checkbox"
+    form.addEventListener('submit', this);
+    window.addEventListener('click', this);
+    window.addEventListener('keydown', this);
+    form.addEventListener('click', this);
+    this.showTs = Date.now();
+  }
+  async handleEvent(e: UIEvent) {
+    if (e.currentTarget === this.form) {
+      if (e.type === 'submit') {
+        e.preventDefault();
+        const data = <string>await getPromiseFileReader(this.impFile.files[0], FR_AS_TXT);
+        const csvData = readCSV(data);
+        this.tbl.importData(csvData, { overwriteExisting: this.overwriteExisting.checked });
+      } else {
+        e.stopPropagation();
+      }
+    } else if (e.currentTarget === window) {
+      if (e.type == 'click') {
+        if (Date.now() - this.showTs > 100) {
+          this.hide();
+        }
+      } else if (e.type === 'keydown') {
+        if ((<KeyboardEvent>e).key === 'Escape') {
+          this.hide();
+        }
+      }
+    }
+  }
+  show(tbl: PasswordTable) {
+    this.tbl = tbl;
+    this.showTs = Date.now();
+    this.form.style.display = '';
+  }
+  hide() {
+    this.form.style.display = 'none';
+  }
+}
+
 export class ContentArea {
   div: HTMLDivElement;
   _changed: boolean;
   data: PassTableJson[];
+  impPane: ImportOptions;
   logoutBtn: HTMLButtonElement;
   onPostLogout: () => any;
   onPreLogout: (buf: ArrayBuffer) => Promise<any>;
@@ -121,6 +276,7 @@ export class ContentArea {
   tables: PasswordTable[];
   constructor(div: HTMLDivElement, errorLog: ErrorLog) {
     this.div = div;
+    this.impPane = new ImportOptions(this, <HTMLFormElement>document.getElementById('imp-pane'));
     this._changed = false;
     this.data = null;
     for (let i = 0; i < div.children.length; ++i) {
@@ -213,6 +369,11 @@ export class ContentArea {
       const buf = concatBuffers(ver, stringToArrayBuffer(JSON.stringify(this.data)));
       this.setWaiting('Saving changes');
       this.onPreLogout(buf).then(x => {
+        this.tables.forEach(tbl => {
+          tbl.oldData = cloneData(tbl.data);
+          tbl.highlightDiffs.checked = false;
+          tbl.updateDiffs();
+        });
         this.changed = false;
       });
     } else if (tgt === this.logoutBtn) {

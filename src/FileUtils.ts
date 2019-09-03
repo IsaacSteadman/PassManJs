@@ -118,6 +118,9 @@ export function unescapeString(str: string): string {
   rtn += str.substring(c);
   return rtn;
 }
+export function unescapeStringCSV(str: string): string {
+  return str.replace(/\"\"/, '"');
+}
 export function readCSV(data: string, lineSep?: string): string[][] {
   if (lineSep == null) {
     if (data.indexOf('\r\n') !== -1) {
@@ -181,7 +184,7 @@ export function readCSV(data: string, lineSep?: string): string[][] {
     }
     for (let c1 = 0; c1 < row.length; ++c1) {
       if (!row[c1].startsWith('"')) continue;
-      row[c1] = unescapeString(row[c1].substring(1, row[c1].length - 1));
+      row[c1] = unescapeStringCSV(row[c1].substring(1, row[c1].length - 1));
     }
   }
   return rows;
@@ -257,7 +260,7 @@ export function readCSV1(data, lineSep) {
     }
     for (let c1 = 0; c1 < cur.length; ++c1) {
       if (!cur[c1].startsWith('"')) continue;
-      cur[c1] = unescapeString(cur[c1].substring(1, cur[c1].length - 1));
+      cur[c1] = unescapeStringCSV(cur[c1].substring(1, cur[c1].length - 1));
     }
   }
   return rows;
