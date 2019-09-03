@@ -349,6 +349,10 @@ export class SearchHelper {
   }
 }
 
+export const MSG_ADDED = 0;
+export const MSG_CHANGED = 1;
+export const MSG_REMOVED = 2;
+
 export class EditTable {
   tbl: HTMLTableElement;
   thead: HTMLTableSectionElement;
@@ -358,7 +362,7 @@ export class EditTable {
   controlColumn: number;
   allowAddRemove: boolean;
   createDefaultData: (arg: EditTable) => { [key: string]: any; };
-  onChangeCallback: (arg: EditTable, dataIndex: number) => void;
+  onChangeCallback: (arg: EditTable, dataIndex: number, msg: 0 | 1 | 2) => void;
   constructor(backingData: { [key: string]: any }[], tbl: HTMLTableElement, colSpec: ValidColSpec[], allowAddRemove: boolean = false) {
     this.tbl = tbl;
     this.thead = tbl.tHead;
@@ -448,7 +452,7 @@ export class EditTable {
         const changed = this.saveRow(tr);
         this.makeStatic(tr);
         if (changed) {
-          this.onChangeCallback(this, tr.rowIndex - 1);
+          this.onChangeCallback(this, tr.rowIndex - 1, MSG_CHANGED);
         }
       } else if (action === 'close') {
         this.makeStatic(tr);
@@ -456,20 +460,20 @@ export class EditTable {
         this.makeEditable(tr);
       } else if (action === 'add') {
         const tr = document.createElement('tr');
-        for (let i = 0; i < this.colSpec.length + 1; ++i) {
-          tr.appendChild(document.createElement('td'))
-        }
+        tr.innerHTML = '<td></td>'.repeat(this.colSpec.length + 1);
         this.backingData.push(
           typeof this.createDefaultData === 'function'
             ? this.createDefaultData(this)
             : {}
         );
         this.tbody.appendChild(tr);
+        this.onChangeCallback(this, tr.rowIndex - 1, MSG_ADDED);
         this.makeEditable(tr);
       } else { // action === 'delete'
-        tr.parentElement.removeChild(tr);
         const dataIndex = tr.rowIndex - 1;
+        tr.parentElement.removeChild(tr);
         this.backingData.splice(dataIndex, 1);
+        this.onChangeCallback(this, dataIndex, MSG_REMOVED);
       }
     }
   }

@@ -108,12 +108,13 @@ class PasswordTable {
         tr.innerHTML = '<td></td>'.repeat(spec.length + 1);
         tbody.appendChild(tr);
         this.editTable.makeStatic(tr);
+        if (tr.rowIndex - 1 !== i) throw new TypeError('expected rowIndex to match');
       }
     }
     this.editTable.createDefaultData = () => {
       return constructArray('', spec.length);
     };
-    this.editTable.onChangeCallback = (arg, dataIndex) => {
+    this.editTable.onChangeCallback = (arg, dataIndex, reason) => {
       if (typeof this.onSetChanged === 'function') {
         this.onSetChanged(true);
       }
@@ -154,14 +155,17 @@ class PasswordTable {
       for (let i = 0; i < rows.length; ++i) {
         if (i >= this.oldData.length) {
           rows[i].style.border = 'solid 1px blue';
+          rows[i].style.backgroundColor = '#ddf';
         } else if (!arrayEquals(this.oldData[i], this.data[i])) {
           rows[i].style.border = 'solid 1px red';
+          rows[i].style.backgroundColor = '#fdd';
         }
       }
     } else {
       const rows = this.editTable.tbody.rows;
       for (let i = 0; i < rows.length; ++i) {
         rows[i].style.border = '';
+        rows[i].style.backgroundColor = '';
       }
     }
   }
@@ -188,7 +192,10 @@ class PasswordTable {
         if (pos === -1) {
           newEntries.push(newDataRow);
         } else {
-          this.data[pos] = newDataRow;
+          const dataRow = this.data[pos];
+          for (let i = 0; i < newDataRow.length; ++i) {
+            dataRow[i] = newDataRow[i];
+          }
           this.editTable.makeStatic(this.editTable.tbody.rows[pos]);
         }
       });
@@ -215,6 +222,7 @@ class ImportOptions {
   form: HTMLFormElement;
   impFile: HTMLInputElement;
   overwriteExisting: HTMLInputElement;
+  importTopRow: HTMLInputElement;
   tbl: PasswordTable;
   showTs: number;
   constructor(parent: ContentArea, form: HTMLFormElement) {
@@ -223,6 +231,7 @@ class ImportOptions {
     this.tbl = null
     this.impFile = <HTMLInputElement>form.children.namedItem('imp-file'); // type="file"
     this.overwriteExisting = <HTMLInputElement>form.children.namedItem('overwrite'); // type="checkbox"
+    this.importTopRow = <HTMLInputElement>form.children.namedItem('imp-top-row'); // type="checkbox"
     form.addEventListener('submit', this);
     window.addEventListener('click', this);
     window.addEventListener('keydown', this);
@@ -235,6 +244,9 @@ class ImportOptions {
         e.preventDefault();
         const data = <string>await getPromiseFileReader(this.impFile.files[0], FR_AS_TXT);
         const csvData = readCSV(data);
+        if (!this.importTopRow.checked) {
+          csvData.shift();
+        }
         this.tbl.importData(csvData, { overwriteExisting: this.overwriteExisting.checked });
       } else {
         e.stopPropagation();
