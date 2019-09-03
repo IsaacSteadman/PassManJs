@@ -7,3 +7,4 @@ node_modules/
 .idea/
 config.json
 policies.json
+*git_fixer.sh
