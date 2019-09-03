@@ -1,7 +1,7 @@
 import { arrayBufferToString, stringToArrayBuffer, concatBuffers } from "./StrUtils";
 import { ErrorLog } from "./ErrorLog";
 import { getPromiseFileReader, FR_AS_TXT, readCSV } from "./FileUtils";
-import { EditTable, MultiLineTextColSpec, LinkTextColSpec, PasswordTextColSpec } from "./EditTable";
+import { EditTable, MultiLineTextColSpec, LinkTextColSpec, PasswordTextColSpec, SearchHelper } from "./EditTable";
 
 interface PassTableColumnSpec {
   name: string;
@@ -20,6 +20,7 @@ class PasswordTable {
   editTable: EditTable;
   readonly data: string[][];
   parent: ContentArea;
+  search: HTMLInputElement;
   onSetChanged: (b: boolean) => any;
   constructor(parent: ContentArea, div: HTMLDivElement, title: string, spec: PassTableColumnSpec[], data: string[][]) {
     {
@@ -27,6 +28,24 @@ class PasswordTable {
       span.innerText = title;
       div.appendChild(span);
     }
+    div.appendChild(document.createElement('br'));
+    this.search = document.createElement('input');
+    this.search.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.search.value = '';
+        this.editTable.search(new SearchHelper((str) => true));
+      }
+    })
+    div.appendChild(this.search);
+    this.search.addEventListener('input', () => {
+      const v = this.search.value.toLowerCase();
+      if (v.length) {
+        this.editTable.search(new SearchHelper((str) => str.toLowerCase().indexOf(v) !== -1));
+      } else {
+        this.editTable.search(new SearchHelper((str) => true));
+      }
+    });
+    div.appendChild(document.createElement('br'));
     const tbl = document.createElement('table');
     {
       div.appendChild(tbl);

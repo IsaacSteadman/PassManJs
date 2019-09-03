@@ -342,6 +342,13 @@ function makeIconImage(action: string, listener: ((this: SVGSVGElement, ev: Mous
   return svg;
 }
 
+export class SearchHelper {
+  test: (str: string) => boolean;
+  constructor (test: (str: string) => boolean) {
+    this.test = test;
+  }
+}
+
 export class EditTable {
   tbl: HTMLTableElement;
   thead: HTMLTableSectionElement;
@@ -366,6 +373,13 @@ export class EditTable {
       const th = this.thead.rows[0].cells[this.controlColumn];
       const addImg = makeIconImage('add', this);
       th.appendChild(addImg);
+    }
+  }
+  search(re: RegExp | SearchHelper, col: number = 0) {
+    const rows = this.tbody.rows;
+    for (let i = 0; i < rows.length; ++i) {
+      const tr = rows[i];
+      tr.style.display = re.test(tr.cells[col].innerText) ? '' : 'none';
     }
   }
   makeEditable(tr: HTMLTableRowElement) {
