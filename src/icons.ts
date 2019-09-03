@@ -43,20 +43,17 @@ const paths = [
 const svgImages: { [key: string]: SVGSVGElement } = {};
 
 async function loadImages() {
-  console.log('loading images');
   const images = await Promise.all(paths.map(path => fetch(path.url).then(x => x.text())));
   for (let i = 0; i < images.length; ++i) {
     images[i] = images[i].substring(images[i].indexOf('<svg'));
   }
   const div = document.createElement('div');
   for (let n = 0; n < images.length; ++n) {
-    console.log('using SVG', images[n]);
     div.innerHTML = images[n];
     const svg = <SVGSVGElement>div.children[0];
     div.removeChild(svg);
     svgImages[paths[n].name] = svg;
   }
-  console.log('loaded images');
   return svgImages;
 }
 

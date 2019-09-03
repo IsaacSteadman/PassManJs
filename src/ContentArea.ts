@@ -182,7 +182,6 @@ export class ContentArea {
     }
   }
   loadTableJson(json: PassTableJson[]) {
-    console.log(json);
     this.data = json;
     const tables: Array<PasswordTable> = [];
     for (let i = 0; i < json.length; ++i) {
