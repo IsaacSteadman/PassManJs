@@ -1,0 +1,12 @@
+#destination:{nginx_sites_available}/PassMan.conf
+server {
+  listen               443 ssl;
+  server_name          {project_domain};
+    ssl_certificate {nginx_ssl_cert}; # managed by Certbot
+    ssl_certificate_key {nginx_ssl_cert_key}; # managed by Certbot
+  ssl_protocols        TLSv1 TLSv1.1 TLSv1.2;
+  ssl_ciphers          HIGH:!aNULL:!MD5;
+  location / {
+    proxy_pass         http://localhost:{project_localport}/;
+  }
+}

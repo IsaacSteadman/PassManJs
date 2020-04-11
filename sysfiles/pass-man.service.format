@@ -1,0 +1,11 @@
+#destination:{systemd_etc_path}/pass-man.service
+[Unit]
+Description=Online Password Manager
+After=network-online.target
+
+[Service]
+User={user}
+ExecStart=/usr/bin/node {project_dir}/dist-server/app.js
+
+[Install]
+WantedBy=multi-user.target
