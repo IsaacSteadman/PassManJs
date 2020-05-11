@@ -1,7 +1,9 @@
+export const subtle: SubtleCrypto = crypto.subtle || crypto.webkitSubtle;
+
 export function encryptAes256CBC(encKey: CryptoKey, data: ArrayBuffer): Promise<ArrayBuffer> {
   const ivArr = new Uint8Array(16);
   crypto.getRandomValues(ivArr);
-  return Promise.resolve(crypto.subtle.encrypt(
+  return Promise.resolve(subtle.encrypt(
     {
       name: 'AES-CBC',
       // length: 256,
@@ -29,7 +31,7 @@ export function decryptAes256CBC(encKey: CryptoKey, data: ArrayBuffer): Promise<
   if (!(encKey instanceof CryptoKey)) throw new TypeError('expected cryptoKey');
   const iv = data.slice(0, 16);
   const encData = data.slice(16);
-  return Promise.resolve(crypto.subtle.decrypt(
+  return Promise.resolve(subtle.decrypt(
     {
       name: 'AES-CBC',
       // length: 256,

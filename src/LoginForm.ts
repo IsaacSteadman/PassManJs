@@ -1,7 +1,7 @@
 import { ServerAccessForm } from "./ServerAccessForm";
 import { stringToArrayBuffer, arrayBufferToHexString, hexStringToArrayBuffer } from "./StrUtils";
 import { ContentArea } from "./ContentArea";
-import { encryptAes256CBC, decryptAes256CBC } from "./CryptoUtils";
+import { encryptAes256CBC, decryptAes256CBC, subtle } from "./CryptoUtils";
 import { ErrorLog } from "./ErrorLog";
 
 export class LoginForm {
@@ -81,7 +81,7 @@ export class LoginForm {
     } else if (e.currentTarget === this.form) {
       e.preventDefault();
       const password = stringToArrayBuffer(this.password.value);
-      const passwordKeyPromise = crypto.subtle.importKey(
+      const passwordKeyPromise = subtle.importKey(
         'raw',
         password,
         { name: 'PBKDF2', length: null },
@@ -89,7 +89,7 @@ export class LoginForm {
         ['deriveKey', 'deriveBits']
       );
       const encryptionKeyPromise = passwordKeyPromise.then(key => {
-        return crypto.subtle.deriveKey(
+        return subtle.deriveKey(
           {
             name: 'PBKDF2',
             salt: stringToArrayBuffer(this.username.value),
@@ -106,7 +106,7 @@ export class LoginForm {
         );
       });
       const authenticationKeyPromise = <Promise<ArrayBuffer>>passwordKeyPromise.then(key => {
-        return crypto.subtle.deriveBits(
+        return subtle.deriveBits(
           {
             name: 'PBKDF2',
             salt: new Uint8Array([1, 2, 3, 4]),

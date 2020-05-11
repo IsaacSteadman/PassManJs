@@ -1,6 +1,6 @@
 import { ServerAccessForm } from "./ServerAccessForm";
 import { stringToArrayBuffer, arrayBufferToHexString, concatBuffers } from "./StrUtils";
-import { encryptAes256CBC } from "./CryptoUtils";
+import { encryptAes256CBC, subtle } from "./CryptoUtils";
 import { ErrorLog } from "./ErrorLog";
 
 function sanitizeUsername(name: string) {
@@ -81,7 +81,7 @@ export class RegisterForm {
         return;
       }
       const password = stringToArrayBuffer(this.password.value);
-      const passwordKeyPromise = Promise.resolve(crypto.subtle.importKey(
+      const passwordKeyPromise = Promise.resolve(subtle.importKey(
         'raw',
         password,
         { name: 'PBKDF2', length: null },
@@ -92,7 +92,7 @@ export class RegisterForm {
         return Promise.reject(err);
       });
       const encryptionKeyPromise = passwordKeyPromise.then(key => {
-        return crypto.subtle.deriveKey(
+        return subtle.deriveKey(
           {
             name: 'PBKDF2',
             salt: stringToArrayBuffer(this.username.value),
@@ -112,7 +112,7 @@ export class RegisterForm {
         return Promise.reject(err);
       });
       const authenticationKeyPromise = <Promise<ArrayBuffer>>passwordKeyPromise.then(key => {
-        return crypto.subtle.deriveBits(
+        return subtle.deriveBits(
           {
             name: 'PBKDF2',
             salt: new Uint8Array([1, 2, 3, 4]),
