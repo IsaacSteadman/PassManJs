@@ -64,9 +64,12 @@ export interface NumberColSpec extends ColumnSpecification {
   type: 'number';
   dataToCell?: ((data: any) => number) | null;
   cellToData?: ((cell: number) => any) | null;
-  min: number | null;
-  max: number | null;
-  step: number | null;
+  numToStaticStr?: ((data: number) => string) | null;
+  valueToNum?: ((value: string) => number) | null;
+  numToValue?: ((data: number) => string) | null;
+  min: string | number | null;
+  max: string | number | null;
+  step: string | number | null;
 }
 
 export interface CustomColSpec extends ColumnSpecification {
@@ -79,7 +82,7 @@ export interface CustomColSpec extends ColumnSpecification {
 }
 
 export interface TriStateColSpec extends ColumnSpecification {
-  type: 'tri-state',
+  type: 'tri-state';
   triStateInput?: boolean; // defaults to false
   // true, false, null
   boolNames?: [string, string, string];
@@ -91,6 +94,11 @@ export type ValidColSpec = StaticColSpec | SingleLineTextColSpec | MultiLineText
 
 const passwordTextCopyListener = function (e: UIEvent) {
   const pre = <HTMLPreElement>(<HTMLImageElement>e.currentTarget).parentElement.children[0];
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(pre.innerText);
+    console.log('copy password successful');
+    return;
+  }
   pre.style.display = '';
   const range = document.createRange();
   range.selectNode(pre);
@@ -155,10 +163,15 @@ function dispStatic(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any) {
         const b = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <boolean | null>data;
         td.innerText = (cs.boolNames || ['False', 'True', 'N/A'])[b == null ? 2 : (b ? 1 : 0)];
       }
+      break;
     case 'number':
       {
         const num = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <number>data;
-        td.innerText = '' + num;
+        if (typeof cs.numToStaticStr === 'function') {
+          td.innerText = cs.numToStaticStr(num);
+        } else {
+          td.innerText = '' + num;
+        }
       }
       break;
     case 'custom':
@@ -214,10 +227,15 @@ function getData(cs: ValidColSpec, td: HTMLTableDataCellElement): any {
     case 'number':
       {
         const elem = <HTMLInputElement>td.children[0];
+        const num = (
+          typeof cs.valueToNum === 'function'
+          ? cs.valueToNum(elem.value)
+          : +elem.value
+        );
         const data = (
           typeof cs.cellToData === 'function'
-            ? cs.cellToData(+elem.value)
-            : +elem.value
+            ? cs.cellToData(num)
+            : num
         );
         return data;
       }
@@ -254,7 +272,7 @@ function dispEdit(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any, who
         if (cs.type === 'single-line-text' || cs.type === 'link-text' || cs.type == 'password-text') {
           (<HTMLInputElement>elem).type = 'text';
           elem.style.width = '100%';
-          elem.style.height = 'fit-content'
+          // elem.style.height = 'fit-content'
         }
         elem.value = str;
         td.innerHTML = '';
@@ -305,15 +323,31 @@ function dispEdit(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any, who
         const elem = document.createElement('input');
         elem.type = 'number';
         const num = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <number>data;
-        elem.value = '' + num;
+        if (typeof cs.numToValue === 'function') {
+          elem.value = cs.numToValue(num);
+        } else {
+          elem.value = '' + num;
+        }
         if (cs.min != null) {
-          elem.min = '' + cs.min;
+          if (typeof cs.min === 'string') {
+            elem.min = cs.min;
+          } else {
+            elem.min = '' + cs.min;
+          }
         }
         if (cs.max != null) {
-          elem.max = '' + cs.max;
+          if (typeof cs.max === 'string') {
+            elem.max = cs.max;
+          } else {
+            elem.max = '' + cs.max;
+          }
         }
         if (cs.step != null) {
-          elem.step = '' + cs.step;
+          if (typeof cs.step === 'string') {
+            elem.step = cs.step;
+          } else {
+            elem.step = '' + cs.step;
+          }
         }
         td.innerHTML = '';
         td.appendChild(elem);
@@ -394,6 +428,14 @@ export class EditTable {
       const cs = this.colSpec[i];
       const data = rowData[cs.attrName];
       dispEdit(cs, td, data, rowData);
+      const inputs = td.getElementsByTagName('input');
+      for (let i = 0; i < inputs.length; ++i) {
+        inputs[i].addEventListener('keydown', this);
+      }
+      const textareas = td.getElementsByTagName('textarea');
+      for (let i = 0; i < textareas.length; ++i) {
+        textareas[i].addEventListener('keydown', this);
+      }
     }
     const control = tr.cells[this.controlColumn];
     control.innerHTML = '';
@@ -443,37 +485,60 @@ export class EditTable {
     }
     return changed;
   }
+  doneRow(tr: HTMLTableRowElement) {
+    const changed = this.saveRow(tr);
+    this.makeStatic(tr);
+    if (changed) {
+      this.onChangeCallback(this, tr.rowIndex - 1, MSG_CHANGED);
+    }
+  }
+  addRow(alterRow: (row: { [key: string]: any; }) => any) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td></td>'.repeat(this.colSpec.length + 1);
+    const row = (
+      typeof this.createDefaultData === 'function'
+      ? this.createDefaultData(this)
+      : {}
+    );
+    if (typeof alterRow === 'function') {
+      alterRow(row);
+    }
+    this.backingData.push(row);
+    this.onChangeCallback(this, tr.rowIndex - 1, MSG_ADDED);
+    this.tbody.appendChild(tr);
+    this.makeEditable(tr);
+  }
   handleEvent(e: UIEvent) {
     const tgt = <HTMLElement>e.currentTarget;
     if (tgt.getAttribute('data-action') != null) {
       const action = tgt.getAttribute('data-action');
       const tr = <HTMLTableRowElement>tgt.parentElement.parentElement;
       if (action === 'done') {
-        const changed = this.saveRow(tr);
-        this.makeStatic(tr);
-        if (changed) {
-          this.onChangeCallback(this, tr.rowIndex - 1, MSG_CHANGED);
-        }
+        this.doneRow(tr);
       } else if (action === 'close') {
         this.makeStatic(tr);
       } else if (action === 'edit') {
         this.makeEditable(tr);
       } else if (action === 'add') {
-        const tr = document.createElement('tr');
-        tr.innerHTML = '<td></td>'.repeat(this.colSpec.length + 1);
-        this.backingData.push(
-          typeof this.createDefaultData === 'function'
-            ? this.createDefaultData(this)
-            : {}
-        );
-        this.tbody.appendChild(tr);
-        this.onChangeCallback(this, tr.rowIndex - 1, MSG_ADDED);
-        this.makeEditable(tr);
+        this.addRow(null);
       } else { // action === 'delete'
         const dataIndex = tr.rowIndex - 1;
         tr.parentElement.removeChild(tr);
         this.backingData.splice(dataIndex, 1);
         this.onChangeCallback(this, dataIndex, MSG_REMOVED);
+      }
+    } else if (e.type === 'keydown' && tgt.parentElement.tagName === 'TD') {
+      const tr = <HTMLTableRowElement>tgt.parentElement.parentElement;
+      if (tgt.tagName === 'INPUT') {
+        if ((<KeyboardEvent>e).keyCode === 13) {
+          this.doneRow(tr);
+          e.preventDefault();
+        }
+      } else if (tgt.tagName === 'TEXTAREA') {
+        if ((<KeyboardEvent>e).ctrlKey && (<KeyboardEvent>e).keyCode === 13) {
+          this.doneRow(tr);
+          e.preventDefault();
+        }
       }
     }
   }

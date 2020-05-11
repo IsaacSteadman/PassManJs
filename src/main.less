@@ -6,6 +6,66 @@
   border: solid 2px blue;
 }
 
+svg[data-action="add"] {
+  >path:first-of-type {
+    fill: #0B0;
+  }
+}
+
+svg[data-action="add"]:hover {
+  >rect:first-of-type {
+    fill: #DFD;
+  }
+}
+
+svg[data-action="copy"]:hover {
+  >rect:first-of-type {
+    fill: #DDF;
+  }
+}
+
+svg[data-action="delete"] {
+  >path:first-of-type {
+    fill: red;
+  }
+}
+
+svg[data-action="delete"]:hover {
+  >rect:first-of-type {
+    fill: #FDD;
+  }
+}
+
+svg[data-action="edit"]:hover {
+  >rect:first-of-type {
+    fill: #DDF;
+  }
+}
+
+svg[data-action="done"] {
+  >path:last-of-type {
+    fill: #0B0;
+  }
+}
+
+svg[data-action="done"]:hover {
+  >rect:first-of-type {
+    fill: #DFD;
+  }
+}
+
+svg[data-action="close"] {
+  >path:first-of-type {
+    fill: #F00;
+  }
+}
+
+svg[data-action="close"]:hover {
+  >rect:first-of-type {
+    fill: #FDD;
+  }
+}
+
 #content {
   border: solid 2px green;
 
@@ -99,66 +159,6 @@
           >img[data-action="copy"],
           >svg[data-action="copy"] {
             float: right;
-          }
-
-          >svg[data-action="copy"]:hover {
-            >rect:first-of-type {
-              fill: #DDF;
-            }
-          }
-
-          >svg[data-action="delete"] {
-            >path:first-of-type {
-              fill: red;
-            }
-          }
-
-          >svg[data-action="delete"]:hover {
-            >rect:first-of-type {
-              fill: #FDD;
-            }
-          }
-
-          >svg[data-action="edit"]:hover {
-            >rect:first-of-type {
-              fill: #DDF;
-            }
-          }
-
-          >svg[data-action="add"] {
-            >path:first-of-type {
-              fill: #0B0;
-            }
-          }
-
-          >svg[data-action="add"]:hover {
-            >rect:first-of-type {
-              fill: #DFD;
-            }
-          }
-
-          >svg[data-action="done"] {
-            >path:last-of-type {
-              fill: #0B0;
-            }
-          }
-
-          >svg[data-action="done"]:hover {
-            >rect:first-of-type {
-              fill: #DFD;
-            }
-          }
-
-          >svg[data-action="close"] {
-            >path:first-of-type {
-              fill: #F00;
-            }
-          }
-
-          >svg[data-action="close"]:hover {
-            >rect:first-of-type {
-              fill: #FDD;
-            }
           }
 
           border-left: solid 1px grey;

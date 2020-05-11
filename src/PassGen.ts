@@ -1,4 +1,6 @@
 import { ErrorLog } from "./ErrorLog";
+import { createIcon } from "./icons";
+import { ContentArea } from "./ContentArea";
 
 const upperAlpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const lowerAlpha = 'abcdefghijklmnopqrstuvwxyz';
@@ -64,7 +66,10 @@ export class PassGen {
   btnGenerate: HTMLInputElement;
   symbolCharset: HTMLInputElement;
   chkHasSpaces: HTMLInputElement;
-  constructor(div: HTMLDivElement, errorLog: ErrorLog) {
+  contentArea: ContentArea;
+  selectAddTable: HTMLSelectElement;
+  addButton: SVGSVGElement;
+  constructor(div: HTMLDivElement, contentArea: ContentArea, errorLog: ErrorLog) {
     this.div = div;
     this.errorLog = errorLog;
     if (typeof BigInt === 'undefined') {
@@ -82,6 +87,72 @@ export class PassGen {
     this.chkSymbol = <HTMLInputElement>this.form.children.namedItem('chk-symbol');
     this.chkHasSpaces = <HTMLInputElement>this.form.children.namedItem('chk-spaces');
     this.passwordOutput = <HTMLInputElement>this.form.children.namedItem('password');
+    this.selectAddTable = <HTMLSelectElement>this.form.children.namedItem('password-add-table');
+    this.contentArea = contentArea;
+    const copyButton = createIcon('copy', () => {
+      const src = this.passwordOutput;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(src.value);
+        console.log('copy password successful');
+        return;
+      }
+      const range = document.createRange();
+      range.selectNode(src);
+      window.getSelection().addRange(range);
+      try {
+        const successful = document.execCommand('copy');
+        console.log(`copy password ${successful ? 'successful' : 'unsuccessful'}`);
+      } catch (err) {
+        console.log('copy password error', err);
+      }
+      window.getSelection().removeAllRanges();
+    });
+    copyButton.style.width = '24px';
+    copyButton.style.height = '24px';
+    copyButton.setAttribute('data-action', 'copy');
+    this.addButton = createIcon('add', () => {
+      if (this.contentArea.data == null) {
+        alert('need to be logged in to add this');
+        return;
+      }
+      const table = contentArea.tables[+this.selectAddTable.value];
+      if (table == null) {
+        alert('please select a valid table');
+        return;
+      }
+      const column = table.spec.map((x, i) => ({spec: x, idx: i})).filter(x => x.spec.type === 'password');
+      if (column.length !== 1) {
+        alert('please select a table with EXACTLY ONE password column');
+        return;
+      }
+      table.editTable.addRow((row) => {
+        row[column[0].idx] = this.passwordOutput.value;
+      });
+    });
+    this.addButton.style.width = '24px';
+    this.addButton.style.height = '24px';
+    this.addButton.setAttribute('data-action', 'add');
+    contentArea.onTables = (tables) => {
+      if (tables == null) {
+        this.addButton.style.display = 'none';
+        this.selectAddTable.style.display = 'none';
+      } else {
+        this.selectAddTable.innerHTML = '';
+        tables.forEach((table, i) => {
+          const opt = document.createElement('option');
+          opt.innerText = table.title;
+          opt.value = `${i}`;
+          this.selectAddTable.appendChild(opt);
+        });
+        this.selectAddTable.value = '0';
+        this.addButton.style.display = '';
+        this.selectAddTable.style.display = '';
+      }
+    };
+    contentArea.onTables(null);
+    this.passwordOutput.insertAdjacentElement('afterend', copyButton);
+    this.selectAddTable.insertAdjacentElement('afterend', this.addButton)
+
     this.btnGenerate = <HTMLInputElement>this.form.children.namedItem('generate');
     this.form.addEventListener('submit', this);
     this.resetCharset.addEventListener('click', this);

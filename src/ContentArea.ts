@@ -280,6 +280,7 @@ export class ContentArea {
   impPane: ImportOptions;
   logoutBtn: HTMLButtonElement;
   onPostLogout: () => any;
+  onTables: (tables: PassTableJson[] | null) => any; // for PassGen, is called whenever a table is added/removed/login/logout
   onPreLogout: (buf: ArrayBuffer) => Promise<any>;
   errorLog: ErrorLog;
   statSpan: HTMLSpanElement;
@@ -364,6 +365,9 @@ export class ContentArea {
       this.dataDiv.appendChild(div);
     }
     this.tables = tables;
+    if (typeof this.onTables === 'function') {
+      this.onTables(this.data);
+    }
     this.changed = false;
   }
   handleEvent(e: Event) {
@@ -396,6 +400,9 @@ export class ContentArea {
         this.dataDiv.innerHTML = '';
         this.tables = [];
         this.data = null;
+        if (typeof this.onTables === 'function') {
+          this.onTables(this.data);
+        }
         this.changed = false;
         this.onPostLogout();
       });

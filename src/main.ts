@@ -4,9 +4,10 @@ import { ServerAccessForm } from "./ServerAccessForm";
 import { RegisterForm } from "./RegisterForm";
 import { ErrorLog } from "./ErrorLog";
 import { PassGen } from "./PassGen";
+import { loadedImagesPromise } from "./icons";
 
-document.addEventListener('DOMContentLoaded', function () {
-
+document.addEventListener('DOMContentLoaded', async function () {
+  await loadedImagesPromise;
 
   const serverAccess = <HTMLFormElement>document.getElementById('serverAccess');
   const content = <HTMLDivElement>document.getElementById('content');
@@ -23,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const loginForm = new LoginForm(login, serverAccessForm, contentArea, errorLog);
   const registerForm = new RegisterForm(register, serverAccessForm, errorLog);
-  const passgen = new PassGen(passgenPanel, errorLog);
+  const passgen = new PassGen(passgenPanel, contentArea, errorLog);
   window['contentArea'] = contentArea;
   window['loginForm'] = loginForm;
   window['registerForm'] = registerForm;
