@@ -59,7 +59,7 @@ export const sanitizePassword = sanitizeHex;
 
 export function doServerAuth(req: Request, res: Response) {
   const server = Buffer.from(serverConfig.ServerAccessPassword, 'utf8');
-  const client = Buffer.from(req.query.server_pass, 'utf8');
+  const client = Buffer.from(<string>req.query.server_pass, 'utf8');
   if (server.length !== client.length || !timingSafeEqual(server, client)) {
     res.status(400).json({ type: 'E_AUTH', query_param: 'server_pass', message: 'bad server access password' });
     return false;
@@ -68,7 +68,7 @@ export function doServerAuth(req: Request, res: Response) {
 }
 
 export function getUsernameStr(req: Request, res: Response): string {
-  const username = req.query.username;
+  const username = <string>req.query.username;
   if (!sanitizeUsername(username)) {
     res.status(400).json({ type: 'E_AUTH', query_param: 'username', message: 'bad username characters' });
     return null;
@@ -77,7 +77,7 @@ export function getUsernameStr(req: Request, res: Response): string {
 }
 
 export function getPassword(req: Request, res: Response): Buffer {
-  const passwordHex = req.query.password;
+  const passwordHex = <string>req.query.password;
   if (!sanitizePassword(passwordHex)) {
     res.status(400).json({ type: 'E_AUTH', query_param: 'password', message: 'bad password characters' });
     return null;
@@ -86,7 +86,7 @@ export function getPassword(req: Request, res: Response): Buffer {
 }
 
 export function getNewPass(req: Request, res: Response): Buffer {
-  const newPassHex = req.query.new_pass;
+  const newPassHex = <string>req.query.new_pass;
   if (!sanitizePassword(newPassHex)) {
     res.status(400).json({ type: 'E_AUTH', query_param: 'new_pass', message: 'bad password characters' });
     return null;

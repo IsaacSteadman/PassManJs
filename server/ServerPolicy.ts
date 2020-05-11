@@ -150,7 +150,7 @@ export function serverPolicyAuth(req: Request, res: Response): ServerPolicy | nu
       return null;
     }
     const server = Buffer.from(policy.Password, 'utf8');
-    const client = Buffer.from(req.query.server_pass, 'utf8');
+    const client = Buffer.from(<string>req.query.server_pass, 'utf8');
     if (server.length !== client.length || !timingSafeEqual(server, client)) {
       res.status(400).json({
         type: 'E_SERVER_NS',
@@ -167,7 +167,7 @@ export function serverPolicyAuth(req: Request, res: Response): ServerPolicy | nu
     return new policyClass(policy, serverNs);
   } else if (serverNs == null) {
     const server = Buffer.from(serverConfig.ServerAccessPassword, 'utf8');
-    const client = Buffer.from(req.query.server_pass, 'utf8');
+    const client = Buffer.from(<string>req.query.server_pass, 'utf8');
     if (server.length !== client.length || !timingSafeEqual(server, client)) {
       res.status(400).json({ type: 'E_AUTH', query_param: 'server_pass', message: 'bad server access password' });
       return null;
