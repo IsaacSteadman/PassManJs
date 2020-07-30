@@ -1,4 +1,8 @@
 #destination:{nginx_sites_available}/PassMan.conf
+#install_perms:sudo
+#install_cmd:link {nginx_sites_available}/PassMan.conf {nginx_sites_enabled}/PassMan.conf
+#install_cmd:systemctl restart nginx
+#uninstall_cmd:rm {nginx_sites_enabled}/PassMan.conf
 server {
   listen               443 ssl;
   server_name          {project_domain};

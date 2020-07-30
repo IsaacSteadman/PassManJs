@@ -1,4 +1,7 @@
 #destination:{systemd_etc_path}/pass-man.service
+#install_perms:sudo
+#install_cmd:systemctl enable pass-man.service
+#uninstall_cmd:systemctl diable pass-man.service
 [Unit]
 Description=Online Password Manager
 After=network-online.target
