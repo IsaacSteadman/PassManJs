@@ -1,16 +1,15 @@
-#destination:{nginx_sites_available}/PassMan.conf
+#destination:{nginx_conf_d_dir}/PassMan.conf
 #install_perms:sudo
-#install_cmd:link {nginx_sites_available}/PassMan.conf {nginx_sites_enabled}/PassMan.conf
 #install_cmd:systemctl restart nginx
-#uninstall_cmd:rm {nginx_sites_enabled}/PassMan.conf
-server {
+#uninstall_cmd:rm {nginx_conf_d_dir}/PassMan.conf
+server {{
   listen               443 ssl;
   server_name          {project_domain};
     ssl_certificate {nginx_ssl_cert}; # managed by Certbot
     ssl_certificate_key {nginx_ssl_cert_key}; # managed by Certbot
   ssl_protocols        TLSv1 TLSv1.1 TLSv1.2;
   ssl_ciphers          HIGH:!aNULL:!MD5;
-  location / {
+  location / {{
     proxy_pass         http://localhost:{project_localport}/;
-  }
-}
+  }}
+}}

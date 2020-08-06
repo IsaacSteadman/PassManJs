@@ -1,0 +1,30 @@
+How to setup PassManJs
+1. clone the project
+2. if you want a full production deployment host on a domain, then follow these steps
+  1. make sure you have the star deployer available (from the ImperialStarDeployer repo)
+  2. make sure certain system dependencies are installed, these include nginx and systemd, and an ssl certificate (I use certbot to manage that)
+  3. make sure star deployer is aware of how your nginx is configured (here I assume nginx configuration lives in /etc/nginx)
+    1. you should have a /etc/nginx/conf.d directory, if you don't then here are the steps to create it
+      1. `sudo mkdir /etc/nginx/conf.d`
+      2. then modify the /etc/nginx/nginx.conf and in the "http" section (starting with "http {" and ending with "}")
+        - add a line that says "include /etc/nginx/conf.d/*.conf;"
+    2. the full path to that conf.d directory should be specified in a project variable for star deployer named "nginx_conf_d_dir".
+      - since this is a system variable, I usually include it in the root /.imperial-star-deployer.json variable file
+  4. make sure star deployer is aware of how your systemd is configured
+    - usually just set the "systemd_etc_path" variable to the path /etc/systemd if that is where your systemd stores its configuration files
+    - it is assumed that {systemd_etc_path}/system is where service files are located
+  5. make sure star deployer is aware of how your ssl certificate is configured
+    1. 2 files are referred to by the PassMan nginx conf file: "nginx_ssl_cert" and "nginx_ssl_cert_key"
+    2. I usually run certbot and have it automatically add its certificate paths to a dummy nginx conf file and then copy those paths into these 2 variables
+      - on my raspberry pi these paths were the following:
+        - nginx_ssl_cert: /etc/letsencrypt/live/isaacsteadman.com/fullchain.pem
+        - nginx_ssl_cert_key: /etc/letsencrypt/live/isaacsteadman.com/privkey.pem
+  6. make sure star deployer is aware of the domain you are hosting PassMan on by adding a project local .imperial-star-deployer.json variable file
+    - all you need to include is `{"project_domain": "your domain"}`
+  7. run `{ImperialStarDeployer directory}/star deploy {PassManJs directory}`
+  8. and now you should be good to go.
+3. if you don't need a full production deployment and want to just run it locally, then follow these steps
+  1. cd into PassManJs
+  2. to get dependencies run `yarn install`
+  3. to build run `yarn run build-client && yarn run build-server`
+  4. to run the server and make the client available to a browser run `yarn run start-server`
