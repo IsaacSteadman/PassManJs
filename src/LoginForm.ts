@@ -17,8 +17,8 @@ export class LoginForm {
   errorLog: ErrorLog;
   constructor(div: HTMLDivElement, serverAccess: ServerAccessForm, contentArea: ContentArea, errorLog: ErrorLog) {
     this.contentArea = contentArea;
-    contentArea.onPreLogout = buf => {
-      return this.encryptAndSend(buf);
+    contentArea.onPreLogout = (buf, timestamp) => {
+      return this.encryptAndSend(buf, timestamp);
     };
     contentArea.onPostLogout = () => {
       this.encKey = null;
@@ -42,7 +42,7 @@ export class LoginForm {
     this.errorLog = errorLog;
     this.password.setAttribute('type', this.showPassword.checked ? 'text' : 'password');
   }
-  async encryptAndSend(buf: ArrayBuffer) {
+  async encryptAndSend(buf: ArrayBuffer, timestamp: string) {
     const outBuf = await encryptAes256CBC(this.encKey, buf);
     const json = {
       data: '00000000' + arrayBufferToHexString(outBuf)
@@ -62,7 +62,8 @@ export class LoginForm {
         method: 'PUT',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'If-Unmodified-Since': timestamp,
         },
         body: JSON.stringify(json)
       }
@@ -138,23 +139,31 @@ export class LoginForm {
         );
       })
         .then(res => {
-          return res.json().then(json => {
-            if (res.ok) return json;
-            else return Promise.reject(json);
+          return res.json().then(data => {
+            if (res.ok) {
+              console.log(res.headers);
+              return {
+                data: data.data,
+                timestamp: res.headers.get('Last-Modified'),
+              };
+            } else {
+              return Promise.reject(data);
+            }
           });
-        })
-        .then(function (json: { data: string }) { return json.data; });
+        });
       Promise.all([encryptionKeyPromise, fetchDataPromise]).then(x => {
-        const [encKey, data] = x;
+        const [encKey, dataAndTimestamp] = x;
+        const { data, timestamp } = dataAndTimestamp;
         this.encKey = encKey;
         const cipherTextBuf = hexStringToArrayBuffer(data);
         const ver = (new DataView(cipherTextBuf)).getUint32(0, true);
         if (ver !== 0) {
           return Promise.reject({ type: 'E_CLIENT_ENCRYPTION_UNSUPPORTED', message: `client does not support version ${ver}` })
         }
-        return decryptAes256CBC(encKey, cipherTextBuf.slice(4));
-      }).then(buf => {
-        this.contentArea.loadTableBuf(buf);
+        return decryptAes256CBC(encKey, cipherTextBuf.slice(4)).then(x => [x, timestamp]);
+      }).then(res => {
+        const [buf, timestamp] = res;
+        this.contentArea.loadTableBuf(buf, timestamp);
         this.div.style.display = 'none';
         this.contentArea.div.style.display = '';
       }).catch(err => {

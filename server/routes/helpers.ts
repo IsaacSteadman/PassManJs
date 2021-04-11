@@ -1,12 +1,15 @@
-import { readFileSync, existsSync, readFile, writeFile } from 'fs';
+import { readFileSync, existsSync, readFile, writeFile, promises as fsPromises } from 'fs';
 import { promisify } from 'util';
 import { resolve, join } from 'path';
 import { Request, Response } from "express";
 import { createHash, pbkdf2, randomBytes, pbkdf2Sync, timingSafeEqual } from 'crypto';
-import { SERVER_DATA_LOCATION, serverConfig } from '../consts';
+import { SERVER_DATA_LOCATION, serverConfig, DEBUG } from '../consts';
 
-export const readFilePromise = promisify(readFile);
-export const writeFilePromise = promisify(writeFile);
+export const {
+  readFile: readFilePromise,
+  writeFile: writeFilePromise,
+  stat: statPromise,
+} = fsPromises;
 export const pbkdf2Promise = promisify(pbkdf2);
 
 export const versionSettings = [
@@ -130,43 +133,102 @@ export interface UserDataBuffer {
   totalLen: number;
   header: Buffer;
   params: any[];
+  timestamp: string;
 }
 
-export async function getUserDataBuffer(path: string, password: Buffer): Promise<UserDataBuffer> {
-  const buf = await readFilePromise(path);
-  const dv = new DataView(buf.buffer);
-  const version = dv.getUint32(0, true);
-  if (version !== 0) {
-    return Promise.reject({ type: 'E_BAD_VER', version: version });
+export class Lock {
+  resolves: ((value?: any) => void)[];
+  acquired: boolean;
+  constructor() {
+    this.acquired = false;
+    this.resolves = [];
   }
-  const { getAdditionalParams, pbkdf2Settings } = versionSettings[version];
-  let off = 4;
-  const { params, off: off1 } = getAdditionalParams(buf, off);
-  off = off1;
-  const { iterations, keylen, hash: hashFn } = pbkdf2Settings(params);
-  const saltLen = dv.getUint16(off, true);
-  off += 2;
-  const hashLen = dv.getUint16(off, true);
-  off += 2;
-  const end = off + saltLen + hashLen;
-  console.log('saltLen =', saltLen);
-  console.log('hashLen =', hashLen);
-  const salt = buf.slice(off, off + saltLen);
-  const hash = buf.slice(off + saltLen, end);
-  const testHash = await pbkdf2Promise(password, salt, iterations, keylen, hashFn);
-  if (timingSafeEqual(hash, testHash)) {
-    const dataLen = dv.getUint32(end, true);
-    return {
-      params: params,
-      version: version,
-      salt: salt, hash: hash,
-      header: buf.slice(0, end),
-      data: buf.slice(end + 4, end + 4 + dataLen),
-      remainder: buf.slice(end + 4 + dataLen),
-      totalLen: buf.length
-    };
+  async acquire() {
+    if (!this.acquired) {
+      this.acquired = true;
+      return;
+    }
+    await new Promise(resolve => {
+      this.resolves.push(resolve);
+    });
   }
-  else {
-    return Promise.reject({ type: 'E_AUTH' });
+  release() {
+    if (this.resolves.length) {
+      this.resolves.shift()();
+    } else {
+      this.acquired = false;
+    }
+  }
+}
+
+const pathLocks: { [path: string]: Lock } = {};
+
+export function getPathLock(path: string): Lock {
+  let lock = pathLocks[path];
+  if (lock == null) {
+    lock = pathLocks[path] = new Lock();
+  }
+  return lock;
+}
+
+export async function getUserDataBuffer(path: string, password: Buffer, acquireLock: boolean = false): Promise<UserDataBuffer> {
+  let lock = acquireLock ? getPathLock(path) : null;
+  try {
+    if (lock) await lock.acquire();
+    const buf = await readFilePromise(path);
+    const st = await statPromise(path);
+    const timestamp = st.mtime.toUTCString();
+    if (DEBUG) console.log('buf.buffer =', buf.buffer);
+    const dv = new DataView(buf.buffer);
+    const version = dv.getUint32(0, true);
+    if (version !== 0) {
+      if (lock) {
+        lock.release();
+        lock = null;
+      }
+      return Promise.reject({ type: 'E_BAD_VER', version: version });
+    }
+    const { getAdditionalParams, pbkdf2Settings } = versionSettings[version];
+    let off = 4;
+    const { params, off: off1 } = getAdditionalParams(buf, off);
+    off = off1;
+    const { iterations, keylen, hash: hashFn } = pbkdf2Settings(params);
+    const saltLen = dv.getUint16(off, true);
+    off += 2;
+    const hashLen = dv.getUint16(off, true);
+    off += 2;
+    const end = off + saltLen + hashLen;
+    if (DEBUG) {
+      console.log('saltLen =', saltLen);
+      console.log('hashLen =', hashLen);
+    }
+    const salt = buf.slice(off, off + saltLen);
+    const hash = buf.slice(off + saltLen, end);
+    const testHash = await pbkdf2Promise(password, salt, iterations, keylen, hashFn);
+    if (timingSafeEqual(hash, testHash)) {
+      const dataLen = dv.getUint32(end, true);
+      return {
+        params,
+        version,
+        salt,
+        hash,
+        header: buf.slice(0, end),
+        data: buf.slice(end + 4, end + 4 + dataLen),
+        remainder: buf.slice(end + 4 + dataLen),
+        totalLen: buf.length,
+        timestamp,
+      };
+    }
+    else {
+      if (lock) {
+        lock.release();
+        lock = null;
+      }
+      return Promise.reject({ type: 'E_AUTH' });
+    }
+  } catch (exc) {
+    lock.release();
+    lock = null;
+    throw exc;
   }
 };

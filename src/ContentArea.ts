@@ -281,12 +281,13 @@ export class ContentArea {
   logoutBtn: HTMLButtonElement;
   onPostLogout: () => any;
   onTables: (tables: PassTableJson[] | null) => any; // for PassGen, is called whenever a table is added/removed/login/logout
-  onPreLogout: (buf: ArrayBuffer) => Promise<any>;
+  onPreLogout: (buf: ArrayBuffer, timestamp: string) => Promise<any>;
   errorLog: ErrorLog;
   statSpan: HTMLSpanElement;
   saveBtn: HTMLButtonElement;
   dataDiv: HTMLDivElement;
   tables: PasswordTable[];
+  timestamp: string;
   constructor(div: HTMLDivElement, errorLog: ErrorLog) {
     this.div = div;
     this.impPane = new ImportOptions(this, <HTMLFormElement>document.getElementById('imp-pane'));
@@ -312,6 +313,7 @@ export class ContentArea {
     this.onPostLogout = null;
     this.errorLog = errorLog;
     this.tables = [];
+    this.timestamp = null;
     window.addEventListener('beforeunload', this);
   }
   set changed(b: boolean) {
@@ -341,10 +343,12 @@ export class ContentArea {
       this.changed = true;
     }
   }
-  loadTableBuf(buf: ArrayBuffer) {
+  loadTableBuf(buf: ArrayBuffer, timestamp: string) {
     const dv = new DataView(buf);
     if (dv.getUint32(0, true) & 0x80000000) {
       this.loadTableJson(JSON.parse(arrayBufferToString(buf.slice(4))));
+      this.timestamp = timestamp;
+      console.log('timestamp =', JSON.stringify(timestamp));
       this.changed = false;
     } else {
       throw new TypeError('only JSON password vaults are supported right now');
@@ -384,7 +388,7 @@ export class ContentArea {
       (new DataView(ver)).setUint32(0, 0x80000000, true);
       const buf = concatBuffers(ver, stringToArrayBuffer(JSON.stringify(this.data)));
       this.setWaiting('Saving changes');
-      this.onPreLogout(buf).then(x => {
+      this.onPreLogout(buf, this.timestamp).then(x => {
         this.tables.forEach(tbl => {
           tbl.oldData = cloneData(tbl.data);
           tbl.highlightDiffs.checked = false;
@@ -396,7 +400,7 @@ export class ContentArea {
       const ver = new ArrayBuffer(4);
       (new DataView(ver)).setUint32(0, 0x80000000, true);
       const buf = concatBuffers(ver, stringToArrayBuffer(JSON.stringify(this.data)));
-      this.onPreLogout(buf).then(x => {
+      this.onPreLogout(buf, this.timestamp).then(x => {
         this.dataDiv.innerHTML = '';
         this.tables = [];
         this.data = null;
