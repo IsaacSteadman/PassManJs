@@ -4,6 +4,12 @@ import { ContentArea } from "./ContentArea";
 
 const upperAlpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const lowerAlpha = 'abcdefghijklmnopqrstuvwxyz';
+const alphaOptions = {
+  'only-upper': upperAlpha,
+  'only-lower': lowerAlpha,
+  'all': upperAlpha + lowerAlpha,
+};
+
 const digits = '0123456789';
 const symbols = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~';
 
@@ -16,8 +22,8 @@ function bigIntFromUint8Array(arr: Uint8Array): bigint {
   return rtn;
 }
 
-function generatePassword(bitlength: number, symbolsAllowed: string, mustHaveUpper: boolean, mustHaveLower: boolean, mustHaveDigit: boolean, mustHaveSymbol: boolean, hasSpaces: boolean) {
-  const allChars = upperAlpha + lowerAlpha + digits + symbolsAllowed + (hasSpaces ? ' ' : '');
+function generatePassword(bitlength: number, symbolsAllowed: string, mustHaveUpper: boolean, mustHaveLower: boolean, mustHaveDigit: boolean, mustHaveSymbol: boolean, hasSpaces: boolean, remainingLettersAllowed: keyof typeof alphaOptions) {
+  const allChars = alphaOptions[remainingLettersAllowed] + digits + symbolsAllowed + (hasSpaces ? ' ' : '');
   const arr = new Uint8Array(Math.ceil(bitlength / 8));
   crypto.getRandomValues(arr);
   const mask = (BigInt(1) << BigInt(bitlength)) - BigInt(1)
@@ -69,6 +75,7 @@ export class PassGen {
   contentArea: ContentArea;
   selectAddTable: HTMLSelectElement;
   addButton: SVGSVGElement;
+  selLettersAllowed: HTMLSelectElement;
   constructor(div: HTMLDivElement, contentArea: ContentArea, errorLog: ErrorLog) {
     this.div = div;
     this.errorLog = errorLog;
@@ -86,6 +93,7 @@ export class PassGen {
     this.chkDigit = <HTMLInputElement>this.form.children.namedItem('chk-digit');
     this.chkSymbol = <HTMLInputElement>this.form.children.namedItem('chk-symbol');
     this.chkHasSpaces = <HTMLInputElement>this.form.children.namedItem('chk-spaces');
+    this.selLettersAllowed = <HTMLSelectElement>this.form.children.namedItem('sel-letters-allowed');
     this.passwordOutput = <HTMLInputElement>this.form.children.namedItem('password');
     this.selectAddTable = <HTMLSelectElement>this.form.children.namedItem('password-add-table');
     this.contentArea = contentArea;
@@ -191,12 +199,14 @@ export class PassGen {
         return;
       }
       this.passwordOutput.value = generatePassword(
-        bitlength, symbolsAllowed,
+        bitlength,
+        symbolsAllowed,
         this.chkUpper.checked,
         this.chkLower.checked,
         this.chkDigit.checked,
         this.chkSymbol.checked,
-        this.chkHasSpaces.checked
+        this.chkHasSpaces.checked,
+        this.selLettersAllowed.value as keyof typeof alphaOptions,
       );
     }
   }
