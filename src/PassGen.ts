@@ -39,8 +39,8 @@ function generatePassword(bitlength: number, symbolsAllowed: string, mustHaveUpp
     n /= l;
   }
   if (mustHaveSymbol) {
-    const l = BigInt(symbols.length);
-    rtn += symbols.charAt(Number(n % l));
+    const l = BigInt(symbolsAllowed.length);
+    rtn += symbolsAllowed.charAt(Number(n % l));
     n /= l;
   }
   const l = BigInt(allChars.length);
