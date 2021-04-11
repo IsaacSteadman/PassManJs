@@ -160,7 +160,7 @@ export class LoginForm {
         if (ver !== 0) {
           return Promise.reject({ type: 'E_CLIENT_ENCRYPTION_UNSUPPORTED', message: `client does not support version ${ver}` })
         }
-        return decryptAes256CBC(encKey, cipherTextBuf.slice(4)).then(x => [x, timestamp]);
+        return decryptAes256CBC(encKey, cipherTextBuf.slice(4)).then(x => [x, timestamp]) as Promise<[ArrayBuffer, string]>;
       }).then(res => {
         const [buf, timestamp] = res;
         this.contentArea.loadTableBuf(buf, timestamp);
