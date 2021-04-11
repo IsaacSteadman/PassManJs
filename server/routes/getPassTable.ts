@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getUserDataBuffer, getUsernameStr, getPassword, getUserInfo } from "./helpers";
+import { getUserDataBuffer, getUsernameStr, getPassword, getUserInfo, getPathLock } from "./helpers";
 import { existsSync } from "fs";
 import { serverPolicyAuth } from "../ServerPolicy";
 
@@ -19,11 +19,14 @@ export async function getPassTable(req: Request, res: Response) {
     });
     return;
   }
-  await getUserDataBuffer(path, password).then(async function (userData) {
-    const { data } = userData;
+  const lock = getPathLock(path)
+  await lock.acquire();
+  await getUserDataBuffer(path, password, true).then(async function (userData) {
+    lock.release();
+    const { data, timestamp } = userData;
     if (policy.readAccountHook(username, data)) {
       await policy.save();
-      res.status(200).json({
+      res.set('Last-Modified', timestamp).status(200).json({
         type: 'SUCCESS',
         data: data.toString('hex')
       });
