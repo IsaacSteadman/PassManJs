@@ -9,3 +9,4 @@ config.json
 policies.json
 *git_fixer.sh
 .imperial-star-deployer.json
+.parcel-cache

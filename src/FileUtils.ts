@@ -2,20 +2,23 @@ const frDispatch = [
   FileReader.prototype.readAsArrayBuffer,
   FileReader.prototype.readAsBinaryString,
   FileReader.prototype.readAsDataURL,
-  FileReader.prototype.readAsText
+  FileReader.prototype.readAsText,
 ];
 export const FR_AS_ARR_BUF = 0;
 export const FR_AS_BIN_STR = 1;
 export const FR_AS_DAT_URL = 2;
 export const FR_AS_TXT = 3;
-export function getPromiseFileReader(blob: Blob, readType: 0 | 1 | 2 | 3): Promise<string | ArrayBuffer> {
+export function getPromiseFileReader(
+  blob: Blob,
+  readType: 0 | 1 | 2 | 3
+): Promise<string | ArrayBuffer> {
   const reader = new FileReader();
   return new Promise(function (resolve, reject) {
     reader.addEventListener('error', function (e) {
-      reject((<FileReader>e.target).error);
+      reject((e.target as FileReader).error);
     });
     reader.addEventListener('load', function (e) {
-      resolve((<FileReader>e.target).result);
+      resolve((e.target as FileReader).result as string | ArrayBuffer);
     });
     frDispatch[readType].call(reader, blob);
   });
@@ -26,7 +29,7 @@ export function escapeString(strOrig: string): string {
   const btnvfr = 'btnvfr';
   for (let c = 0; c < strOrig.length; ++c) {
     const v = strOrig.charCodeAt(c);
-    if (v < 0x20 || v >= 0x7F) {
+    if (v < 0x20 || v >= 0x7f) {
       if (v >= 0x08 && v <= 0x0d) {
         rtn += '\\' + btnvfr.charAt(v - 0x08);
       } else if (v === 0) {
@@ -37,13 +40,13 @@ export function escapeString(strOrig: string): string {
         }
       } else if (v > 0x00 && v <= 0xff) {
         const a0 = v & 0xf;
-        const a1 = v & 0xf0 >> 4;
+        const a1 = v & (0xf0 >> 4);
         rtn += '\\x' + a1 + a0;
       } else {
         const a0 = v & 0xf;
-        const a1 = v & 0xf0 >> 4;
-        const a2 = v & 0xf00 >> 8;
-        const a3 = v & 0xf000 >> 12;
+        const a1 = v & (0xf0 >> 4);
+        const a2 = v & (0xf00 >> 8);
+        const a3 = v & (0xf000 >> 12);
         rtn += '\\u' + a3 + a2 + a1 + a0;
       }
     } else if (v === 0x22 || v === 0x27 || v === 0x5c) {
@@ -90,15 +93,15 @@ export function unescapeString(str: string): string {
     ++c1;
     switch (ch) {
       case 'x':
-        val = Number('0x' + str.substring(c1, c1 += 2));
+        val = Number('0x' + str.substring(c1, (c1 += 2)));
         break;
       case 'u':
-        val = Number('0x' + str.substring(c1, c1 += 4));
+        val = Number('0x' + str.substring(c1, (c1 += 4)));
         break;
       case 'U':
-        val = Number('0x' + str.substring(c1, c1 += 8));
+        val = Number('0x' + str.substring(c1, (c1 += 8)));
         break;
-      case '\'':
+      case "'":
         val = 0x27;
         break;
       case '"':
@@ -112,7 +115,10 @@ export function unescapeString(str: string): string {
         rtn += '\\';
         break;
     }
-    rtn += String.fromCodePoint === undefined ? String.fromCharCode(val) : String.fromCodePoint(val);
+    rtn +=
+      String.fromCodePoint === undefined
+        ? String.fromCharCode(val)
+        : String.fromCodePoint(val);
     c = c1;
   }
   rtn += str.substring(c);
@@ -164,7 +170,7 @@ export function readCSV(data: string, lineSep?: string): string[][] {
       curCell += data.substring(c, iL);
       curRow.push(curCell);
       curCell = '';
-      rows.push(curRow = []); // single '=' is intentional
+      rows.push((curRow = [])); // single '=' is intentional
       c = iL + lineSep.length;
     } else {
       curCell += data.substring(c);
@@ -180,7 +186,9 @@ export function readCSV(data: string, lineSep?: string): string[][] {
   for (let c = 0; c < rows.length; ++c) {
     const row = rows[c];
     if (row.length !== nCols) {
-      throw new Error(`row ${c + 1} had ${row.length} elements when ${nCols} are expected`);
+      throw new Error(
+        `row ${c + 1} had ${row.length} elements when ${nCols} are expected`
+      );
     }
     for (let c1 = 0; c1 < row.length; ++c1) {
       if (!row[c1].startsWith('"')) continue;
@@ -199,7 +207,7 @@ export function readCSV1(data, lineSep) {
       lineSep = '\n';
     }
   }
-  const rows = [];
+  const rows: string[][] = [];
   let line;
   let pos = 0;
   let posOrig = 0;
@@ -216,14 +224,14 @@ export function readCSV1(data, lineSep) {
     if (line.length === 0) {
       continue;
     }
-    const cur = [];
+    const cur: string[] = [];
     let cur1 = '';
-    for (let c = 0; c < line.length;) {
+    for (let c = 0; c < line.length; ) {
       if (line.charAt(c) === '"') {
         const tmp = c;
         ++c;
         while (c < line.length && line.charAt(c) !== '"') {
-          if (line.charAt(c) === '\\')++c;
+          if (line.charAt(c) === '\\') ++c;
           ++c;
         }
         ++c;
@@ -256,7 +264,15 @@ export function readCSV1(data, lineSep) {
   for (let c = 0; c < rows.length; ++c) {
     const cur = rows[c];
     if (cur.length !== tmp) {
-      throw new Error('row ' + (c + 1) + ' had ' + cur.length + ' elements when ' + tmp + ' are expected');
+      throw new Error(
+        'row ' +
+          (c + 1) +
+          ' had ' +
+          cur.length +
+          ' elements when ' +
+          tmp +
+          ' are expected'
+      );
     }
     for (let c1 = 0; c1 < cur.length; ++c1) {
       if (!cur[c1].startsWith('"')) continue;

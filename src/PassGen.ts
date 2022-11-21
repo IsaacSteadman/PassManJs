@@ -1,13 +1,14 @@
-import { ErrorLog } from "./ErrorLog";
-import { createIcon } from "./icons";
-import { ContentArea } from "./ContentArea";
+import { ErrorLog } from './ErrorLog';
+import { createIcon } from './icons';
+import { ContentArea } from './ContentArea';
+import { copyTextToClipboard } from './EditTable';
 
 const upperAlpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const lowerAlpha = 'abcdefghijklmnopqrstuvwxyz';
 const alphaOptions = {
   'only-upper': upperAlpha,
   'only-lower': lowerAlpha,
-  'all': upperAlpha + lowerAlpha,
+  all: upperAlpha + lowerAlpha,
 };
 
 const digits = '0123456789';
@@ -22,11 +23,24 @@ function bigIntFromUint8Array(arr: Uint8Array): bigint {
   return rtn;
 }
 
-function generatePassword(bitlength: number, symbolsAllowed: string, mustHaveUpper: boolean, mustHaveLower: boolean, mustHaveDigit: boolean, mustHaveSymbol: boolean, hasSpaces: boolean, remainingLettersAllowed: keyof typeof alphaOptions) {
-  const allChars = alphaOptions[remainingLettersAllowed] + digits + symbolsAllowed + (hasSpaces ? ' ' : '');
+function generatePassword(
+  bitlength: number,
+  symbolsAllowed: string,
+  mustHaveUpper: boolean,
+  mustHaveLower: boolean,
+  mustHaveDigit: boolean,
+  mustHaveSymbol: boolean,
+  hasSpaces: boolean,
+  remainingLettersAllowed: keyof typeof alphaOptions
+) {
+  const allChars =
+    alphaOptions[remainingLettersAllowed] +
+    digits +
+    symbolsAllowed +
+    (hasSpaces ? ' ' : '');
   const arr = new Uint8Array(Math.ceil(bitlength / 8));
   crypto.getRandomValues(arr);
-  const mask = (BigInt(1) << BigInt(bitlength)) - BigInt(1)
+  const mask = (BigInt(1) << BigInt(bitlength)) - BigInt(1);
   let n = bigIntFromUint8Array(arr) & mask;
   let rtn = '';
   if (mustHaveUpper) {
@@ -76,45 +90,51 @@ export class PassGen {
   selectAddTable: HTMLSelectElement;
   addButton: SVGSVGElement;
   selLettersAllowed: HTMLSelectElement;
-  constructor(div: HTMLDivElement, contentArea: ContentArea, errorLog: ErrorLog) {
+  constructor(
+    div: HTMLDivElement,
+    contentArea: ContentArea,
+    errorLog: ErrorLog
+  ) {
     this.div = div;
     this.errorLog = errorLog;
     if (typeof BigInt === 'undefined') {
-      div.innerHTML = '<p><span style="color: red; font-weight: bold; font-size: 24px">Your browser is too old.</span><br/>In order to use PassGen, use a browser that supports the new <span style="display:inline;color:darkcyan;font-style: italic;font-family:consolas">BigInt</span> standard.</p>';
+      div.innerHTML =
+        '<p><span style="color: red; font-weight: bold; font-size: 24px">Your browser is too old.</span><br/>In order to use PassGen, use a browser that supports the new <span style="display:inline;color:darkcyan;font-style: italic;font-family:consolas">BigInt</span> standard.</p>';
       return;
     }
     this.form = div.getElementsByTagName('form')[0];
-    this.bitlength = <HTMLInputElement>this.form.children.namedItem('bitlength');
-    this.resetCharset = <HTMLButtonElement>this.form.children.namedItem('reset-charset');
-    this.symbolCharset = <HTMLInputElement>this.form.children.namedItem('symbol-charset');
+    this.bitlength = <HTMLInputElement>(
+      this.form.children.namedItem('bitlength')
+    );
+    this.resetCharset = <HTMLButtonElement>(
+      this.form.children.namedItem('reset-charset')
+    );
+    this.symbolCharset = <HTMLInputElement>(
+      this.form.children.namedItem('symbol-charset')
+    );
     this.symbolCharset.value = symbols;
     this.chkUpper = <HTMLInputElement>this.form.children.namedItem('chk-upper');
     this.chkLower = <HTMLInputElement>this.form.children.namedItem('chk-lower');
     this.chkDigit = <HTMLInputElement>this.form.children.namedItem('chk-digit');
-    this.chkSymbol = <HTMLInputElement>this.form.children.namedItem('chk-symbol');
-    this.chkHasSpaces = <HTMLInputElement>this.form.children.namedItem('chk-spaces');
-    this.selLettersAllowed = <HTMLSelectElement>this.form.children.namedItem('sel-letters-allowed');
-    this.passwordOutput = <HTMLInputElement>this.form.children.namedItem('password');
-    this.selectAddTable = <HTMLSelectElement>this.form.children.namedItem('password-add-table');
+    this.chkSymbol = <HTMLInputElement>(
+      this.form.children.namedItem('chk-symbol')
+    );
+    this.chkHasSpaces = <HTMLInputElement>(
+      this.form.children.namedItem('chk-spaces')
+    );
+    this.selLettersAllowed = <HTMLSelectElement>(
+      this.form.children.namedItem('sel-letters-allowed')
+    );
+    this.passwordOutput = <HTMLInputElement>(
+      this.form.children.namedItem('password')
+    );
+    this.selectAddTable = <HTMLSelectElement>(
+      this.form.children.namedItem('password-add-table')
+    );
     this.contentArea = contentArea;
-    const copyButton = createIcon('copy', () => {
-      const src = this.passwordOutput;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(src.value);
-        console.log('copy password successful');
-        return;
-      }
-      const range = document.createRange();
-      range.selectNode(src);
-      window.getSelection().addRange(range);
-      try {
-        const successful = document.execCommand('copy');
-        console.log(`copy password ${successful ? 'successful' : 'unsuccessful'}`);
-      } catch (err) {
-        console.log('copy password error', err);
-      }
-      window.getSelection().removeAllRanges();
-    });
+    const copyButton = createIcon('copy', () =>
+      copyTextToClipboard(this.passwordOutput.value)
+    );
     copyButton.style.width = '24px';
     copyButton.style.height = '24px';
     copyButton.setAttribute('data-action', 'copy');
@@ -128,7 +148,9 @@ export class PassGen {
         alert('please select a valid table');
         return;
       }
-      const column = table.spec.map((x, i) => ({spec: x, idx: i})).filter(x => x.spec.type === 'password');
+      const column = table.spec
+        .map((x, i) => ({ spec: x, idx: i }))
+        .filter((x) => x.spec.type === 'password');
       if (column.length !== 1) {
         alert('please select a table with EXACTLY ONE password column');
         return;
@@ -159,9 +181,11 @@ export class PassGen {
     };
     contentArea.onTables(null);
     this.passwordOutput.insertAdjacentElement('afterend', copyButton);
-    this.selectAddTable.insertAdjacentElement('afterend', this.addButton)
+    this.selectAddTable.insertAdjacentElement('afterend', this.addButton);
 
-    this.btnGenerate = <HTMLInputElement>this.form.children.namedItem('generate');
+    this.btnGenerate = <HTMLInputElement>(
+      this.form.children.namedItem('generate')
+    );
     this.form.addEventListener('submit', this);
     this.resetCharset.addEventListener('click', this);
   }
@@ -177,7 +201,7 @@ export class PassGen {
       if (isNaN(bitlength) || bitlength <= 0) {
         this.errorLog.logError({
           type: 'E_BAD_BITLEN',
-          message: 'expected number greater than 0'
+          message: 'expected number greater than 0',
         });
         return;
       }
@@ -194,7 +218,7 @@ export class PassGen {
         this.errorLog.logError({
           type: 'E_BAD_CHARSET',
           message: 'character specified more than once',
-          characters: new Array(...unexpectedChars.keys())
+          characters: new Array(...unexpectedChars.keys()),
         });
         return;
       }
@@ -206,7 +230,7 @@ export class PassGen {
         this.chkDigit.checked,
         this.chkSymbol.checked,
         this.chkHasSpaces.checked,
-        this.selLettersAllowed.value as keyof typeof alphaOptions,
+        this.selLettersAllowed.value as keyof typeof alphaOptions
       );
     }
   }

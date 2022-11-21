@@ -1,12 +1,11 @@
-import { createIcon } from "./icons";
+import { createIcon } from './icons';
 
 interface ColumnSpecification {
-  type: 'static' | 'single-line-text' | 'multi-line-text' | 'text' | 'link-text' | 'password-text' | 'option' | 'boolean' | 'number' | 'custom' | 'tri-state';
   header?: string;
   attrName: string;
   editIsStatic?: boolean;
-  dataToCell?: ((data: any) => string | number | boolean) | null;
-  cellToData?: ((cell: string | number | boolean) => any) | null;
+  // dataToCell?: ((data: any) => string | number | boolean) | null;
+  // cellToData?: ((cell: string | number | boolean) => any) | null;
 }
 
 export interface StaticColSpec extends ColumnSpecification {
@@ -57,7 +56,7 @@ export interface OptionColSpec extends ColumnSpecification {
   type: 'option';
   dataToCell?: ((data: any) => string) | null;
   cellToData?: ((cell: string) => any) | null;
-  options: { key: string, title: string }[];
+  options: { key: string; title: string }[];
 }
 
 export interface NumberColSpec extends ColumnSpecification {
@@ -76,9 +75,9 @@ export interface CustomColSpec extends ColumnSpecification {
   type: 'custom';
   dataToCell?: null;
   cellToData?: null;
-  dataFromEditableTd: (td: HTMLTableDataCellElement) => any;
-  staticTdFromData: (td: HTMLTableDataCellElement, data: any) => void;
-  editableTdFromData: (td: HTMLTableDataCellElement, data: any) => void;
+  dataFromEditableTd: (td: HTMLTableCellElement) => any;
+  staticTdFromData: (td: HTMLTableCellElement, data: any) => void;
+  editableTdFromData: (td: HTMLTableCellElement, data: any) => void;
 }
 
 export interface TriStateColSpec extends ColumnSpecification {
@@ -86,14 +85,27 @@ export interface TriStateColSpec extends ColumnSpecification {
   triStateInput?: boolean; // defaults to false
   // true, false, null
   boolNames?: [string, string, string];
-  dataToCell?: ((data: any) => (boolean | null)) | null;
-  cellToData?: ((cell: (boolean | null)) => any) | null;
+  dataToCell?: ((data: any) => boolean | null) | null;
+  cellToData?: ((cell: boolean | null) => any) | null;
 }
 
-export type ValidColSpec = StaticColSpec | SingleLineTextColSpec | MultiLineTextColSpec | TextColSpec | LinkTextColSpec | PasswordTextColSpec | BoolColSpec | OptionColSpec | NumberColSpec | CustomColSpec | TriStateColSpec;
+export type ValidColSpec =
+  | StaticColSpec
+  | SingleLineTextColSpec
+  | MultiLineTextColSpec
+  | TextColSpec
+  | LinkTextColSpec
+  | PasswordTextColSpec
+  | BoolColSpec
+  | OptionColSpec
+  | NumberColSpec
+  | CustomColSpec
+  | TriStateColSpec;
 
 const passwordTextCopyListener = function (e: UIEvent) {
-  const pre = <HTMLPreElement>(<HTMLImageElement>e.currentTarget).parentElement.children[0];
+  const img = e.currentTarget as HTMLImageElement;
+  const td = img.parentElement as HTMLTableCellElement;
+  const pre = td.getElementsByTagName('pre')[0];
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(pre.innerText);
     console.log('copy password successful');
@@ -102,16 +114,38 @@ const passwordTextCopyListener = function (e: UIEvent) {
   pre.style.display = '';
   const range = document.createRange();
   range.selectNode(pre);
-  window.getSelection().addRange(range);
+  window.getSelection()?.addRange(range);
   try {
     const successful = document.execCommand('copy');
     console.log(`copy password ${successful ? 'successful' : 'unsuccessful'}`);
   } catch (err) {
     console.log('copy password error', err);
   }
-  window.getSelection().removeAllRanges();
+  window.getSelection()?.removeAllRanges();
   pre.style.display = 'none';
 };
+
+export function copyTextToClipboard(text: string) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text);
+    console.log('copy password successful');
+    return;
+  }
+  window.getSelection()?.removeAllRanges();
+  const pre = document.createElement('pre');
+  pre.innerText = text;
+  const range = document.createRange();
+  range.selectNode(pre);
+  window.getSelection()?.addRange(range);
+  try {
+    const successful = document.execCommand('copy');
+    console.log(`copy password ${successful ? 'successful' : 'unsuccessful'}`);
+  } catch (err) {
+    console.log('copy password error', err);
+  }
+  window.getSelection()?.removeAllRanges();
+  pre.remove();
+}
 
 function dispStatic(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any) {
   switch (cs.type) {
@@ -120,13 +154,19 @@ function dispStatic(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any) {
     case 'multi-line-text':
     case 'text':
       {
-        const str = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <string>data;
+        const str =
+          typeof cs.dataToCell === 'function'
+            ? cs.dataToCell(data)
+            : <string>data;
         td.innerText = str;
       }
       break;
     case 'link-text':
       {
-        const str = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <string>data;
+        const str =
+          typeof cs.dataToCell === 'function'
+            ? cs.dataToCell(data)
+            : <string>data;
         td.innerHTML = '';
         const a = document.createElement('a');
         a.href = str;
@@ -136,7 +176,10 @@ function dispStatic(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any) {
       break;
     case 'password-text':
       {
-        const str = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <string>data;
+        const str =
+          typeof cs.dataToCell === 'function'
+            ? cs.dataToCell(data)
+            : <string>data;
         td.innerText = '\u2022'.repeat(str.length);
         const pre = document.createElement('pre');
         pre.innerText = str;
@@ -148,25 +191,39 @@ function dispStatic(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any) {
       break;
     case 'option':
       {
-        const optKey = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <string>data;
-        td.innerText = cs.options.find(x => x.key === optKey).title;
+        const optKey =
+          typeof cs.dataToCell === 'function'
+            ? cs.dataToCell(data)
+            : <string>data;
+        td.innerText = cs.options.find((x) => x.key === optKey)?.title || '';
       }
       break;
     case 'boolean':
       {
-        const b = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <boolean>data;
+        const b =
+          typeof cs.dataToCell === 'function'
+            ? cs.dataToCell(data)
+            : <boolean>data;
         td.innerText = (cs.boolNames || ['False', 'True'])[b ? 1 : 0];
       }
       break;
     case 'tri-state':
       {
-        const b = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <boolean | null>data;
-        td.innerText = (cs.boolNames || ['False', 'True', 'N/A'])[b == null ? 2 : (b ? 1 : 0)];
+        const b =
+          typeof cs.dataToCell === 'function'
+            ? cs.dataToCell(data)
+            : <boolean | null>data;
+        td.innerText = (cs.boolNames || ['False', 'True', 'N/A'])[
+          b == null ? 2 : b ? 1 : 0
+        ];
       }
       break;
     case 'number':
       {
-        const num = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <number>data;
+        const num =
+          typeof cs.dataToCell === 'function'
+            ? cs.dataToCell(data)
+            : <number>data;
         if (typeof cs.numToStaticStr === 'function') {
           td.innerText = cs.numToStaticStr(num);
         } else {
@@ -183,7 +240,7 @@ function dispStatic(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any) {
   }
 }
 
-function getData(cs: ValidColSpec, td: HTMLTableDataCellElement): any {
+function getData(cs: ValidColSpec, td: HTMLTableCellElement): any {
   switch (cs.type) {
     case 'static':
       throw new TypeError('cannot convert static table cell element to data');
@@ -192,59 +249,58 @@ function getData(cs: ValidColSpec, td: HTMLTableDataCellElement): any {
     case 'text':
     case 'link-text':
     case 'password-text':
-    case 'option':
-      {
-        const elem = <HTMLTextAreaElement | HTMLInputElement | HTMLSelectElement>td.children[0]
-        const data = (
-          typeof cs.cellToData === 'function'
-            ? cs.cellToData(elem.value)
-            : elem.value
-        );
-        return data;
-      }
-    case 'boolean':
-      {
+    case 'option': {
+      const elem = <HTMLTextAreaElement | HTMLInputElement | HTMLSelectElement>(
+        td.children[0]
+      );
+      const data =
+        typeof cs.cellToData === 'function'
+          ? cs.cellToData(elem.value)
+          : elem.value;
+      return data;
+    }
+    case 'boolean': {
+      const elem = <HTMLInputElement>td.children[0];
+      const data =
+        typeof cs.cellToData === 'function'
+          ? cs.cellToData(elem.checked)
+          : elem.checked;
+      return data;
+    }
+    case 'tri-state': {
+      let innerData: boolean | null = null;
+      if (cs.triStateInput) {
+        const elem = <HTMLSelectElement>td.children[0];
+        innerData = elem.value === 'null' ? null : elem.value === 'true';
+      } else {
         const elem = <HTMLInputElement>td.children[0];
-        const data = (
-          typeof cs.dataToCell === 'function'
-            ? cs.cellToData(elem.checked)
-            : elem.checked
-        );
-        return data;
+        innerData = elem.checked;
       }
-    case 'tri-state':
-      {
-        let innerData = null;
-        if (cs.triStateInput) {
-          const elem = <HTMLSelectElement>td.children[0];
-          innerData = elem.value === 'null' ? null : elem.value === 'true';
-        } else {
-          const elem = <HTMLInputElement>td.children[0];
-          innerData = elem.checked;
-        }
-        return typeof cs.dataToCell === 'function' ? cs.cellToData(innerData) : innerData;
-      }
-    case 'number':
-      {
-        const elem = <HTMLInputElement>td.children[0];
-        const num = (
-          typeof cs.valueToNum === 'function'
+      return typeof cs.cellToData === 'function'
+        ? cs.cellToData(innerData)
+        : innerData;
+    }
+    case 'number': {
+      const elem = <HTMLInputElement>td.children[0];
+      const num =
+        typeof cs.valueToNum === 'function'
           ? cs.valueToNum(elem.value)
-          : +elem.value
-        );
-        const data = (
-          typeof cs.cellToData === 'function'
-            ? cs.cellToData(num)
-            : num
-        );
-        return data;
-      }
+          : +elem.value;
+      const data =
+        typeof cs.cellToData === 'function' ? cs.cellToData(num) : num;
+      return data;
+    }
     case 'custom':
       return cs.dataFromEditableTd(td);
   }
 }
 
-function dispEdit(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any, wholeData: { [key: string]: any }) {
+function dispEdit(
+  cs: ValidColSpec,
+  td: HTMLTableCellElement,
+  data: any,
+  wholeData: { [key: string]: any }
+) {
   if (cs.editIsStatic) {
     dispStatic(cs, td, data);
     return;
@@ -252,7 +308,10 @@ function dispEdit(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any, who
   switch (cs.type) {
     case 'static':
       {
-        const str = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <string>data;
+        const str =
+          typeof cs.dataToCell === 'function'
+            ? cs.dataToCell(data)
+            : <string>data;
         td.innerText = str;
       }
       break;
@@ -262,14 +321,20 @@ function dispEdit(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any, who
     case 'link-text':
     case 'password-text':
       {
-        const str = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <string>data;
-        const isMultiLine = (
+        const str =
+          typeof cs.dataToCell === 'function'
+            ? cs.dataToCell(data)
+            : <string>data;
+        const isMultiLine =
           cs.type === 'text'
             ? wholeData[cs.attrNameIsMultiLine]
-            : (cs.type === 'multi-line-text')
-        );
+            : cs.type === 'multi-line-text';
         const elem = document.createElement(isMultiLine ? 'textarea' : 'input');
-        if (cs.type === 'single-line-text' || cs.type === 'link-text' || cs.type == 'password-text') {
+        if (
+          cs.type === 'single-line-text' ||
+          cs.type === 'link-text' ||
+          cs.type == 'password-text'
+        ) {
           (<HTMLInputElement>elem).type = 'text';
           elem.style.width = '100%';
           // elem.style.height = 'fit-content'
@@ -282,13 +347,16 @@ function dispEdit(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any, who
     case 'option':
       {
         const elem = document.createElement('select');
-        cs.options.forEach(opt => {
+        cs.options.forEach((opt) => {
           const optElem = document.createElement('option');
           optElem.value = opt.key;
           optElem.innerText = opt.title;
           elem.appendChild(optElem);
         });
-        elem.value = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <string>data;
+        elem.value =
+          typeof cs.dataToCell === 'function'
+            ? cs.dataToCell(data)
+            : <string>data;
         td.innerHTML = '';
         td.appendChild(elem);
       }
@@ -297,13 +365,17 @@ function dispEdit(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any, who
       if (cs.triStateInput) {
         const elem = document.createElement('select');
         const vals = ['true', 'false', 'null'];
-        cs.boolNames.forEach((opt, i) => {
+        (cs.boolNames || vals).forEach((opt, i) => {
           const optElem = document.createElement('option');
           optElem.value = vals[i];
           optElem.innerText = opt;
           elem.appendChild(optElem);
         });
-        elem.value = '' + (typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <boolean | null>data);
+        elem.value =
+          '' +
+          (typeof cs.dataToCell === 'function'
+            ? cs.dataToCell(data)
+            : <boolean | null>data);
         td.innerHTML = '';
         td.appendChild(elem);
         break;
@@ -312,7 +384,8 @@ function dispEdit(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any, who
       {
         const elem = document.createElement('input');
         elem.type = 'checkbox';
-        const b = typeof cs.dataToCell === 'function' ? !!cs.dataToCell(data) : !!data;
+        const b =
+          typeof cs.dataToCell === 'function' ? !!cs.dataToCell(data) : !!data;
         elem.checked = b;
         td.innerHTML = '';
         td.appendChild(elem);
@@ -322,7 +395,10 @@ function dispEdit(cs: ValidColSpec, td: HTMLTableDataCellElement, data: any, who
       {
         const elem = document.createElement('input');
         elem.type = 'number';
-        const num = typeof cs.dataToCell === 'function' ? cs.dataToCell(data) : <number>data;
+        const num =
+          typeof cs.dataToCell === 'function'
+            ? cs.dataToCell(data)
+            : <number>data;
         if (typeof cs.numToValue === 'function') {
           elem.value = cs.numToValue(num);
         } else {
@@ -365,10 +441,15 @@ const iconPaths = {
   cancel: '/icons/close.svg',
   edit: '/icons/edit.svg',
   delete: '/icons/delete_outline.svg',
-  copy: '/icons/copy.svg'
+  copy: '/icons/copy.svg',
 };
 
-function makeIconImage(action: string, listener: ((this: SVGSVGElement, ev: MouseEvent) => any) | { handleEvent: (ev: MouseEvent) => any; }): HTMLImageElement | SVGSVGElement {
+export function makeIconImage(
+  action: string,
+  listener:
+    | ((this: SVGSVGElement, ev: MouseEvent) => any)
+    | { handleEvent: (ev: MouseEvent) => any }
+): HTMLImageElement | SVGSVGElement {
   const svg = createIcon(action, listener);
   svg.setAttribute('data-action', action);
   svg.style.width = '24px';
@@ -378,7 +459,7 @@ function makeIconImage(action: string, listener: ((this: SVGSVGElement, ev: Mous
 
 export class SearchHelper {
   test: (str: string) => boolean;
-  constructor (test: (str: string) => boolean) {
+  constructor(test: (str: string) => boolean) {
     this.test = test;
   }
 }
@@ -392,21 +473,28 @@ export class EditTable {
   thead: HTMLTableSectionElement;
   tbody: HTMLTableSectionElement;
   colSpec: ValidColSpec[];
-  backingData: { [key: string]: any; }[];
+  backingData: { [key: string]: any }[];
   controlColumn: number;
   allowAddRemove: boolean;
-  createDefaultData: (arg: EditTable) => { [key: string]: any; };
-  onChangeCallback: (arg: EditTable, dataIndex: number, msg: 0 | 1 | 2) => void;
-  constructor(backingData: { [key: string]: any }[], tbl: HTMLTableElement, colSpec: ValidColSpec[], allowAddRemove: boolean = false) {
+  createDefaultData: null | ((arg: EditTable) => { [key: string]: any });
+  onChangeCallback:
+    | null
+    | ((arg: EditTable, dataIndex: number, msg: 0 | 1 | 2) => void);
+  constructor(
+    backingData: { [key: string]: any }[],
+    tbl: HTMLTableElement,
+    colSpec: ValidColSpec[],
+    allowAddRemove: boolean = false
+  ) {
     this.tbl = tbl;
-    this.thead = tbl.tHead;
+    this.thead = tbl.tHead as typeof this.thead;
     this.tbody = tbl.tBodies[0];
     this.colSpec = colSpec;
     this.backingData = backingData;
     this.controlColumn = this.colSpec.length;
     this.allowAddRemove = allowAddRemove;
     this.createDefaultData = null;
-    this.onChangeCallback = null
+    this.onChangeCallback = null;
     if (this.allowAddRemove) {
       const th = this.thead.rows[0].cells[this.controlColumn];
       const addImg = makeIconImage('add', this);
@@ -489,30 +577,30 @@ export class EditTable {
     const changed = this.saveRow(tr);
     this.makeStatic(tr);
     if (changed) {
-      this.onChangeCallback(this, tr.rowIndex - 1, MSG_CHANGED);
+      this.onChangeCallback?.(this, tr.rowIndex - 1, MSG_CHANGED);
     }
   }
-  addRow(alterRow: (row: { [key: string]: any; }) => any) {
+  addRow(alterRow: null | ((row: { [key: string]: any }) => any)) {
     const tr = document.createElement('tr');
     tr.innerHTML = '<td></td>'.repeat(this.colSpec.length + 1);
-    const row = (
+    const row =
       typeof this.createDefaultData === 'function'
-      ? this.createDefaultData(this)
-      : {}
-    );
+        ? this.createDefaultData(this)
+        : {};
     if (typeof alterRow === 'function') {
       alterRow(row);
     }
     this.backingData.push(row);
-    this.onChangeCallback(this, tr.rowIndex - 1, MSG_ADDED);
+    this.onChangeCallback?.(this, tr.rowIndex - 1, MSG_ADDED);
     this.tbody.appendChild(tr);
     this.makeEditable(tr);
   }
   handleEvent(e: UIEvent) {
     const tgt = <HTMLElement>e.currentTarget;
+    if (tgt.parentElement == null) return;
     if (tgt.getAttribute('data-action') != null) {
       const action = tgt.getAttribute('data-action');
-      const tr = <HTMLTableRowElement>tgt.parentElement.parentElement;
+      const tr = tgt.parentElement.parentElement as HTMLTableRowElement;
       if (action === 'done') {
         this.doneRow(tr);
       } else if (action === 'close') {
@@ -521,21 +609,25 @@ export class EditTable {
         this.makeEditable(tr);
       } else if (action === 'add') {
         this.addRow(null);
-      } else { // action === 'delete'
+      } else {
+        // action === 'delete'
         const dataIndex = tr.rowIndex - 1;
-        tr.parentElement.removeChild(tr);
+        tr.parentElement?.removeChild(tr);
         this.backingData.splice(dataIndex, 1);
-        this.onChangeCallback(this, dataIndex, MSG_REMOVED);
+        this.onChangeCallback?.(this, dataIndex, MSG_REMOVED);
       }
     } else if (e.type === 'keydown' && tgt.parentElement.tagName === 'TD') {
-      const tr = <HTMLTableRowElement>tgt.parentElement.parentElement;
+      const tr = tgt.parentElement.parentElement as HTMLTableRowElement;
       if (tgt.tagName === 'INPUT') {
-        if ((<KeyboardEvent>e).keyCode === 13) {
+        if ((e as KeyboardEvent).keyCode === 13) {
           this.doneRow(tr);
           e.preventDefault();
         }
       } else if (tgt.tagName === 'TEXTAREA') {
-        if ((<KeyboardEvent>e).ctrlKey && (<KeyboardEvent>e).keyCode === 13) {
+        if (
+          (e as KeyboardEvent).ctrlKey &&
+          (e as KeyboardEvent).keyCode === 13
+        ) {
           this.doneRow(tr);
           e.preventDefault();
         }

@@ -1,15 +1,29 @@
-import { arrayBufferToString, stringToArrayBuffer, concatBuffers } from "./StrUtils";
-import { ErrorLog } from "./ErrorLog";
-import { getPromiseFileReader, FR_AS_TXT, readCSV } from "./FileUtils";
-import { EditTable, MultiLineTextColSpec, LinkTextColSpec, PasswordTextColSpec, SearchHelper } from "./EditTable";
+import {
+  arrayBufferToString,
+  stringToArrayBuffer,
+  concatBuffers,
+} from './StrUtils';
+import { ErrorLog } from './ErrorLog';
+import { getPromiseFileReader, FR_AS_TXT, readCSV } from './FileUtils';
+import {
+  EditTable,
+  MultiLineTextColSpec,
+  LinkTextColSpec,
+  PasswordTextColSpec,
+  SearchHelper,
+  CustomColSpec,
+  makeIconImage,
+  copyTextToClipboard,
+} from './EditTable';
+import { generateOtp } from './mfa';
 
 interface PassTableColumnSpec {
   name: string;
-  type: 'text' | 'link' | 'password'
+  type: 'text' | 'link' | 'password';
 }
 
-function constructArray<T>(fill: T, length: number): Array<T> {
-  const arr = [];
+function constructArray<T>(fill: T, length: number): T[] {
+  const arr: T[] = [];
   for (let i = 0; i < length; ++i) {
     arr[i] = fill;
   }
@@ -17,9 +31,9 @@ function constructArray<T>(fill: T, length: number): Array<T> {
 }
 
 function cloneData(data: string[][]): string[][] {
-  const newData = [];
+  const newData: string[][] = [];
   for (let y = 0; y < data.length; ++y) {
-    const part = [];
+    const part: string[] = [];
     for (let x = 0; x < data[y].length; ++x) {
       part.push(data[y][x]);
     }
@@ -48,7 +62,13 @@ class PasswordTable {
   spec: PassTableColumnSpec[];
   highlightDiffs: HTMLInputElement;
   oldData: string[][];
-  constructor(parent: ContentArea, div: HTMLDivElement, title: string, spec: PassTableColumnSpec[], data: string[][]) {
+  constructor(
+    parent: ContentArea,
+    div: HTMLDivElement,
+    title: string,
+    spec: PassTableColumnSpec[],
+    data: string[][]
+  ) {
     {
       const span = document.createElement('span');
       span.innerText = title;
@@ -77,26 +97,122 @@ class PasswordTable {
     }
     this.importBtn = document.createElement('button');
     this.importBtn.addEventListener('click', this);
-    this.importBtn.innerText = 'Import CSV'
+    this.importBtn.innerText = 'Import CSV';
     div.appendChild(this.importBtn);
-    this.editTable = new EditTable(<{ [key: string]: any }[]>data, tbl, spec.map((spec, i) => {
-      if (spec.type === 'text') {
-        return <MultiLineTextColSpec>{
-          type: 'multi-line-text',
-          attrName: '' + i
-        };
-      } else if (spec.type === 'link') {
-        return <LinkTextColSpec>{
-          type: 'link-text',
-          attrName: '' + i
-        };
-      } else if (spec.type === 'password') {
-        return <PasswordTextColSpec>{
-          type: 'password-text',
-          attrName: '' + i
-        };
-      }
-    }), true);
+    this.editTable = new EditTable(
+      data as { [key: string]: any }[],
+      tbl,
+      spec.map((spec, i) => {
+        if (spec.type === 'text') {
+          const res: MultiLineTextColSpec = {
+            type: 'multi-line-text',
+            attrName: `${i}`,
+          };
+          return res;
+        } else if (spec.type === 'link') {
+          const res: LinkTextColSpec = {
+            type: 'link-text',
+            attrName: `${i}`,
+          };
+          return res;
+        } else if (spec.type === 'password') {
+          const res: CustomColSpec = {
+            type: 'custom',
+            attrName: `${i}`,
+            dataFromEditableTd: (td) => {
+              const sel = td.getElementsByTagName('select')[0];
+              if (sel.value === 'password') {
+                const inp = td.getElementsByTagName('input')[0];
+                return { type: 'password', value: inp.value };
+              } else if (sel.value === 'mfa-key') {
+                const inp = td.getElementsByTagName('input')[0];
+                return { type: 'mfa-key', value: inp.value };
+              } else {
+                throw new Error('unrecognized type ' + sel.value);
+              }
+            },
+            editableTdFromData: (td, data) => {
+              if (typeof data === 'string') {
+                data = { type: 'password', value: data };
+              }
+              const sel = document.createElement('select');
+              sel.innerHTML = [
+                '<option value="password">Password</option>',
+                '<option value="mfa-key">MFA Key</option>',
+              ].join('');
+              sel.value = data.type;
+              const elementCache: {
+                password?: {
+                  inp: HTMLInputElement;
+                };
+                'mfa-key'?: {
+                  inp: HTMLInputElement;
+                };
+              } = {};
+              const changeCb = () => {
+                td.childNodes.forEach((node) => {
+                  if (node === sel) {
+                    return;
+                  }
+                  node.remove();
+                });
+                if (sel.value === 'password') {
+                  let cache = elementCache[sel.value];
+                  if (cache == null) {
+                    const inp = document.createElement('input');
+                    inp.value = data.value;
+                    elementCache[sel.value] = cache = {
+                      inp,
+                    };
+                  }
+                  td.appendChild(cache.inp);
+                } else if (sel.value === 'mfa-key') {
+                  let cache = elementCache[sel.value];
+                  if (cache == null) {
+                    const inp = document.createElement('input');
+                    inp.value = data.value;
+                    elementCache[sel.value] = cache = {
+                      inp,
+                    };
+                  }
+                  td.appendChild(cache.inp);
+                } else {
+                  throw new Error('unrecognized type ' + data.type);
+                }
+              };
+              td.innerHTML = '';
+              td.appendChild(sel);
+              sel.addEventListener('change', changeCb);
+              changeCb();
+            },
+            staticTdFromData: (td, data) => {
+              if (typeof data === 'string') {
+                data = { type: 'password', value: data };
+              }
+              if (data.type === 'password') {
+                td.innerText = 'password:' + '\u2022'.repeat(data.value.length);
+                const copyButton = makeIconImage('copy', (e) => {
+                  copyTextToClipboard(data.value);
+                });
+                td.appendChild(copyButton);
+              } else if (data.type === 'mfa-key') {
+                td.innerText = 'MFA Key:' + '\u2022'.repeat(data.value.length);
+                const copyButton = makeIconImage('copy', async (e) => {
+                  copyTextToClipboard(await generateOtp(data.value));
+                });
+                td.appendChild(copyButton);
+              } else {
+                throw new Error('unrecognized type ' + data.type);
+              }
+            },
+          };
+          return res;
+        } else {
+          throw new Error('unrecognized type ' + spec.type);
+        }
+      }),
+      true
+    );
     this.spec = spec;
     this.oldData = cloneData(data);
     this.data = data;
@@ -108,7 +224,8 @@ class PasswordTable {
         tr.innerHTML = '<td></td>'.repeat(spec.length + 1);
         tbody.appendChild(tr);
         this.editTable.makeStatic(tr);
-        if (tr.rowIndex - 1 !== i) throw new TypeError('expected rowIndex to match');
+        if (tr.rowIndex - 1 !== i)
+          throw new TypeError('expected rowIndex to match');
       }
     }
     this.editTable.createDefaultData = () => {
@@ -137,7 +254,9 @@ class PasswordTable {
       } else if (e.type === 'input') {
         const v = this.search.value.toLowerCase();
         if (v.length) {
-          this.editTable.search(new SearchHelper((str) => str.toLowerCase().indexOf(v) !== -1));
+          this.editTable.search(
+            new SearchHelper((str) => str.toLowerCase().indexOf(v) !== -1)
+          );
         } else {
           this.editTable.search(new SearchHelper((str) => true));
         }
@@ -187,7 +306,7 @@ class PasswordTable {
         }
         return -1;
       };
-      data.forEach(newDataRow => {
+      data.forEach((newDataRow) => {
         const pos = findFunction(newDataRow);
         if (pos === -1) {
           newEntries.push(newDataRow);
@@ -212,9 +331,9 @@ class PasswordTable {
 }
 
 interface PassTableJson {
-  title: string,
-  spec: PassTableColumnSpec[],
-  data: string[][]
+  title: string;
+  spec: PassTableColumnSpec[];
+  data: string[][];
 }
 
 class ImportOptions {
@@ -223,15 +342,18 @@ class ImportOptions {
   impFile: HTMLInputElement;
   overwriteExisting: HTMLInputElement;
   importTopRow: HTMLInputElement;
-  tbl: PasswordTable;
+  tbl: null | PasswordTable;
   showTs: number;
   constructor(parent: ContentArea, form: HTMLFormElement) {
     this.parent = parent;
     this.form = form;
-    this.tbl = null
-    this.impFile = <HTMLInputElement>form.children.namedItem('imp-file'); // type="file"
-    this.overwriteExisting = <HTMLInputElement>form.children.namedItem('overwrite'); // type="checkbox"
-    this.importTopRow = <HTMLInputElement>form.children.namedItem('imp-top-row'); // type="checkbox"
+    this.impFile = form.children.namedItem('imp-file') as HTMLInputElement; // type="file"
+    this.overwriteExisting = <HTMLInputElement>(
+      form.children.namedItem('overwrite')
+    ); // type="checkbox"
+    this.importTopRow = <HTMLInputElement>(
+      form.children.namedItem('imp-top-row')
+    ); // type="checkbox"
     form.addEventListener('submit', this);
     window.addEventListener('click', this);
     window.addEventListener('keydown', this);
@@ -242,12 +364,20 @@ class ImportOptions {
     if (e.currentTarget === this.form) {
       if (e.type === 'submit') {
         e.preventDefault();
-        const data = <string>await getPromiseFileReader(this.impFile.files[0], FR_AS_TXT);
+        if (this.tbl == null) {
+          return;
+        }
+        const data = (await getPromiseFileReader(
+          (this.impFile.files as FileList).item(0) as File,
+          FR_AS_TXT
+        )) as string;
         const csvData = readCSV(data);
         if (!this.importTopRow.checked) {
           csvData.shift();
         }
-        this.tbl.importData(csvData, { overwriteExisting: this.overwriteExisting.checked });
+        this.tbl.importData(csvData, {
+          overwriteExisting: this.overwriteExisting.checked,
+        });
       } else {
         e.stopPropagation();
       }
@@ -276,12 +406,12 @@ class ImportOptions {
 export class ContentArea {
   div: HTMLDivElement;
   _changed: boolean;
-  data: PassTableJson[];
+  data: PassTableJson[] | null;
   impPane: ImportOptions;
   logoutBtn: HTMLButtonElement;
-  onPostLogout: () => any;
-  onTables: (tables: PassTableJson[] | null) => any; // for PassGen, is called whenever a table is added/removed/login/logout
-  onPreLogout: (buf: ArrayBuffer) => Promise<any>;
+  onPostLogout: null | (() => any);
+  onTables: null | ((tables: PassTableJson[] | null) => any); // for PassGen, is called whenever a table is added/removed/login/logout
+  onPreLogout: null | ((buf: ArrayBuffer) => Promise<any>);
   errorLog: ErrorLog;
   statSpan: HTMLSpanElement;
   saveBtn: HTMLButtonElement;
@@ -289,7 +419,10 @@ export class ContentArea {
   tables: PasswordTable[];
   constructor(div: HTMLDivElement, errorLog: ErrorLog) {
     this.div = div;
-    this.impPane = new ImportOptions(this, <HTMLFormElement>document.getElementById('imp-pane'));
+    this.impPane = new ImportOptions(
+      this,
+      <HTMLFormElement>document.getElementById('imp-pane')
+    );
     this._changed = false;
     this.data = null;
     for (let i = 0; i < div.children.length; ++i) {
@@ -335,7 +468,14 @@ export class ContentArea {
   }
   removeRow(tr: HTMLTableRowElement) {
     const r = tr.rowIndex - 1;
-    if (window.confirm(`are you sure you want to delete the password named ${tr.cells[0].textContent}`)) {
+    if (this.data == null || tr.parentElement == null) {
+      return;
+    }
+    if (
+      window.confirm(
+        `are you sure you want to delete the password named ${tr.cells[0].textContent}`
+      )
+    ) {
       tr.parentElement.removeChild(tr);
       this.data.splice(r, 1);
       this.changed = true;
@@ -357,10 +497,10 @@ export class ContentArea {
       const { title, spec, data } = json[i];
       const div = document.createElement('div');
       this.dataDiv.appendChild(div);
-      const ptbl = new PasswordTable(this, div, title, spec, data)
-      ptbl.onSetChanged = b => {
+      const ptbl = new PasswordTable(this, div, title, spec, data);
+      ptbl.onSetChanged = (b) => {
         this.changed = b;
-      }
+      };
       tables.push(ptbl);
       this.dataDiv.appendChild(div);
     }
@@ -374,18 +514,21 @@ export class ContentArea {
     if (e.currentTarget === window) {
       if (this.changed) {
         e.preventDefault();
-        e.returnValue = <any>'Data you have entered may not be saved';
+        e.returnValue = 'Data you have entered may not be saved' as any;
       }
       return;
     }
-    const tgt = <Element>e.currentTarget
+    const tgt = <Element>e.currentTarget;
     if (tgt === this.saveBtn) {
       const ver = new ArrayBuffer(4);
-      (new DataView(ver)).setUint32(0, 0x80000000, true);
-      const buf = concatBuffers(ver, stringToArrayBuffer(JSON.stringify(this.data)));
+      new DataView(ver).setUint32(0, 0x80000000, true);
+      const buf = concatBuffers(
+        ver,
+        stringToArrayBuffer(JSON.stringify(this.data))
+      );
       this.setWaiting('Saving changes');
-      this.onPreLogout(buf).then(x => {
-        this.tables.forEach(tbl => {
+      this.onPreLogout?.(buf).then((x) => {
+        this.tables.forEach((tbl) => {
           tbl.oldData = cloneData(tbl.data);
           tbl.highlightDiffs.checked = false;
           tbl.updateDiffs();
@@ -394,9 +537,12 @@ export class ContentArea {
       });
     } else if (tgt === this.logoutBtn) {
       const ver = new ArrayBuffer(4);
-      (new DataView(ver)).setUint32(0, 0x80000000, true);
-      const buf = concatBuffers(ver, stringToArrayBuffer(JSON.stringify(this.data)));
-      this.onPreLogout(buf).then(x => {
+      new DataView(ver).setUint32(0, 0x80000000, true);
+      const buf = concatBuffers(
+        ver,
+        stringToArrayBuffer(JSON.stringify(this.data))
+      );
+      this.onPreLogout?.(buf).then((x) => {
         this.dataDiv.innerHTML = '';
         this.tables = [];
         this.data = null;
@@ -404,7 +550,7 @@ export class ContentArea {
           this.onTables(this.data);
         }
         this.changed = false;
-        this.onPostLogout();
+        this.onPostLogout?.();
       });
     }
   }
