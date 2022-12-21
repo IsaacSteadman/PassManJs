@@ -1,13 +1,13 @@
-import { readFileSync, existsSync, readFile, writeFile, mkdirSync, } from 'fs';
-import * as express from 'express';
-import { resolve, } from 'path';
-import { createServer } from 'http';
 import * as bodyParser from 'body-parser';
-import { getPassTable } from './routes/getPassTable';
-import { putPassTable } from './routes/putPassTable';
-import { passTableNewPass } from './routes/passTableNewPass';
-import { putNewAccount as postNewAccount } from './routes/postNewAccount';
+import * as express from 'express';
+import { existsSync, mkdirSync } from 'fs';
+import { createServer } from 'http';
+import { resolve } from 'path';
 import { CORS, DEBUG, PORT, SERVER_DATA_LOCATION } from './consts';
+import { getPassTable } from './routes/getPassTable';
+import { passTableNewPass } from './routes/passTableNewPass';
+import { postNewAccount } from './routes/postNewAccount';
+import { putPassTable } from './routes/putPassTable';
 
 if (!existsSync(SERVER_DATA_LOCATION)) {
   console.log('creating directory at', SERVER_DATA_LOCATION);
@@ -29,6 +29,7 @@ if (CORS) {
 app.use(express.static(resolve(__dirname, '../dist')));
 app.use('/icons', express.static(resolve(__dirname, '../icons')));
 app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.raw({ limit: '50mb', type: 'application/octet-stream' }));
 
 if (DEBUG) {
   app.use(function (req, res, next) {

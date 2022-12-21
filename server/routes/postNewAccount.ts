@@ -1,10 +1,15 @@
-import { Request, Response } from "express";
-import { writeFilePromise, getNewPass, getBinaryBodyData, getUsernameStr, versionSettings, getUserInfo } from "./helpers";
-import { existsSync } from "fs";
-import { pbkdf2Sync, randomBytes } from "crypto";
-import { serverPolicyAuth } from "../ServerPolicy";
+import { Request, Response } from 'express';
+import { existsSync } from 'fs';
+import { serverPolicyAuth } from '../ServerPolicy';
+import {
+  getBinaryBodyData,
+  getNewPass,
+  getUserDataBufferV2,
+  getUserInfo,
+  getUsernameStr,
+} from './helpers';
 
-export async function putNewAccount(req: Request, res: Response) {
+export async function postNewAccount(req: Request, res: Response) {
   const policy = serverPolicyAuth(req, res);
   if (policy == null) return;
   const username = getUsernameStr(req, res);
@@ -18,38 +23,43 @@ export async function putNewAccount(req: Request, res: Response) {
     res.status(400).json({ type: 'E_USER', message: 'username already taken' });
     return;
   }
+  await getUserDataBufferV2({
+    type: 'new',
+    path,
+    password: newPass,
+    operate: async (user, state, writeable) => {
+      if (!(await policy.createAccountHook(username, dataFromClient))) {
+        res.status(400).json({
+          type: 'E_POLICY',
+          action: 'createAccount',
+          message: 'action was blocked by server policy',
+        });
+        state.responded = true;
+        return;
+      }
+      await user.setPassword(newPass);
+      await user.putDataBuffer(dataFromClient);
+      await user.save(writeable);
+      state.completed = true;
+      state.responded = true;
+    },
+    authErr: async (state, err) => {
+      if (err == null) {
+        res.status(400).json({ type: 'E_INVAL', message: 'unknown error' });
+        state.responded = true;
+      } else {
+        res.status(500).json({ type: 'SERVER_ERROR' });
+        state.responded = true;
+        console.log(err);
+      }
+    },
+  });
   if (!policy.createAccountHook(username, dataFromClient)) {
     res.status(400).json({
       type: 'E_POLICY',
       action: 'createAccount',
-      message: 'action was blocked by server policy'
+      message: 'action was blocked by server policy',
     });
     return;
   }
-  await policy.save();
-  const salt = randomBytes(32);
-  const settings = versionSettings[0].pbkdf2Settings([]);
-  const hash = pbkdf2Sync(newPass, salt, settings.iterations, settings.keylen, settings.hash);
-  const header = Buffer.alloc(4 + 4 + salt.length + hash.length);
-  const dv = new DataView(header.buffer);
-  let off = 4;
-  dv.setUint16(off, salt.length, true);
-  off += 2;
-  dv.setUint16(off, hash.length, true);
-  off += 2
-  salt.copy(header, off);
-  off += salt.length;
-  hash.copy(header, off);
-  off += hash.length;
-  const dataToSave = Buffer.alloc(header.length + dataFromClient.length + 4);
-  header.copy(dataToSave, 0);
-  const dv1 = new DataView(dataToSave.buffer);
-  dv1.setUint32(header.length, dataFromClient.length, true);
-  dataFromClient.copy(dataToSave, header.length + 4);
-  await writeFilePromise(path, dataToSave).then(x => {
-    res.status(200).json({ type: 'SUCCESS' });
-  }).catch(err => {
-    res.status(500).json({ type: 'SERVER_ERROR' });
-    console.log(err);
-  });
-};
+}
