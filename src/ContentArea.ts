@@ -9,7 +9,6 @@ import {
   EditTable,
   MultiLineTextColSpec,
   LinkTextColSpec,
-  PasswordTextColSpec,
   SearchHelper,
   CustomColSpec,
   makeIconImage,
@@ -30,38 +29,67 @@ function constructArray<T>(fill: T, length: number): T[] {
   return arr;
 }
 
-function cloneData(data: string[][]): string[][] {
-  const newData: string[][] = [];
+function cloneData(data: CellData[][]): CellData[][] {
+  const newData: CellData[][] = [];
   for (let y = 0; y < data.length; ++y) {
-    const part: string[] = [];
+    const part: CellData[] = [];
     for (let x = 0; x < data[y].length; ++x) {
-      part.push(data[y][x]);
+      const v = data[y][x];
+      part.push(typeof v !== 'string' ? { ...v } : v);
     }
     newData.push(part);
   }
   return newData;
 }
 
-function arrayEquals(arr1: string[], arr2: string[]): boolean {
+type CellData = string | { type: 'mfa-key' | 'password'; value: string };
+
+function arrayEquals(
+  spec: PassTableColumnSpec[],
+  arr1: CellData[],
+  arr2: CellData[]
+): boolean {
   if (arr1.length !== arr2.length) {
     return false;
   }
   for (let i = 0; i < arr1.length; ++i) {
-    if (arr1[i] !== arr2[i]) return false;
+    if (spec[i].type === 'password') {
+      const v1 = arr1[i];
+      const v2 = arr2[i];
+      if (typeof v1 === 'string' && typeof v2 !== 'string') {
+        if (v2.type !== 'password' || v2.value !== v1) {
+          return false;
+        }
+      } else if (typeof v1 !== 'string' && typeof v2 === 'string') {
+        if (v1.type !== 'password' || v1.value !== v2) {
+          return false;
+        }
+      } else if (typeof v1 !== 'string' && typeof v2 !== 'string') {
+        if (v1.type !== v2.type || v1.value !== v2.value) {
+          return false;
+        }
+      } else if (v1 !== v2) {
+        return false;
+      }
+    } else {
+      if (arr1[i] !== arr2[i]) {
+        return false;
+      }
+    }
   }
   return true;
 }
 
 class PasswordTable {
   editTable: EditTable;
-  readonly data: string[][];
+  readonly data: CellData[][];
   parent: ContentArea;
   search: HTMLInputElement;
   onSetChanged: (b: boolean) => any;
   importBtn: HTMLButtonElement;
   spec: PassTableColumnSpec[];
   highlightDiffs: HTMLInputElement;
-  oldData: string[][];
+  oldData: CellData[][];
   constructor(
     parent: ContentArea,
     div: HTMLDivElement,
@@ -189,17 +217,16 @@ class PasswordTable {
               if (typeof data === 'string') {
                 data = { type: 'password', value: data };
               }
+              const copyButton = makeIconImage('copy', async (e) => {
+                copyTextToClipboard(
+                  await PasswordTable.getPotentiallyComputedValue(spec, data)
+                );
+              });
               if (data.type === 'password') {
                 td.innerText = 'password:' + '\u2022'.repeat(data.value.length);
-                const copyButton = makeIconImage('copy', (e) => {
-                  copyTextToClipboard(data.value);
-                });
                 td.appendChild(copyButton);
               } else if (data.type === 'mfa-key') {
                 td.innerText = 'MFA Key:' + '\u2022'.repeat(data.value.length);
-                const copyButton = makeIconImage('copy', async (e) => {
-                  copyTextToClipboard(await generateOtp(data.value));
-                });
                 td.appendChild(copyButton);
               } else {
                 throw new Error('unrecognized type ' + data.type);
@@ -275,7 +302,7 @@ class PasswordTable {
         if (i >= this.oldData.length) {
           rows[i].style.border = 'solid 1px blue';
           rows[i].style.backgroundColor = '#ddf';
-        } else if (!arrayEquals(this.oldData[i], this.data[i])) {
+        } else if (!arrayEquals(this.spec, this.oldData[i], this.data[i])) {
           rows[i].style.border = 'solid 1px red';
           rows[i].style.backgroundColor = '#fdd';
         }
@@ -327,6 +354,22 @@ class PasswordTable {
       this.editTable.tbody.appendChild(tr);
       this.editTable.makeStatic(tr);
     }
+  }
+
+  static async getPotentiallyComputedValue(
+    spec: PassTableColumnSpec,
+    cell: CellData
+  ): Promise<string> {
+    if (spec.type !== 'password') {
+      return cell as string;
+    }
+    if (typeof cell === 'string') {
+      return cell;
+    }
+    if (cell.type === 'mfa-key') {
+      return generateOtp(cell.value);
+    }
+    return cell.value;
   }
 }
 
