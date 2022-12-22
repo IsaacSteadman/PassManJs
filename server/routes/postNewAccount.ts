@@ -58,12 +58,4 @@ export async function postNewAccount(req: Request, res: Response) {
       }
     },
   });
-  if (!policy.createAccountHook(username, dataFromClient)) {
-    res.status(400).json({
-      type: 'E_POLICY',
-      action: 'createAccount',
-      message: 'action was blocked by server policy',
-    });
-    return;
-  }
 }
