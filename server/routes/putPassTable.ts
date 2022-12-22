@@ -13,6 +13,7 @@ import {
 } from '../utils';
 
 export async function putPassTable(req: Request, res: Response) {
+  console.log('putPassTable');
   const policy = serverPolicyAuth(req, res);
   if (policy == null) return;
   const username = getUsernameStr(req, res);
@@ -36,28 +37,31 @@ export async function putPassTable(req: Request, res: Response) {
     type: 'write',
     path,
     password,
+    prependLog: '  ',
     conditions,
     preconditionErr: async (state, preconditionChecksFailed) => {
       res.status(412).json({
         type: 'E_PRECONDITION',
         preconditionChecksFailed,
         message:
-          'it is likely that your password vault was modified by another session since the time the vault for the current session was loaded',
+          'your password vault was probably modified by another session the current session was loaded',
       });
       state.responded = true;
     },
-    operate: async (user, state, readable, writeable) => {
-      if (!(await policy.updateAccountHook(username, dataFromClient))) {
-        res.status(400).json({
-          type: 'E_POLICY',
-          action: 'updateAccount',
-          message: 'action was blocked by server policy',
-        });
-        state.responded = true;
+    preOpenWritable: async (state) => {
+      if (await policy.updateAccountHook(username, dataFromClient)) {
         return;
       }
+      res.status(400).json({
+        type: 'E_POLICY',
+        action: 'updateAccount',
+        message: 'action was blocked by server policy',
+      });
+      state.responded = true;
+    },
+    operate: async (user, state, readable, writable) => {
       await user.putDataBuffer(dataFromClient);
-      await user.save(writeable);
+      await user.save(writable);
       state.completed = true;
     },
     afterSavedIfNotResponded: async (state) => {

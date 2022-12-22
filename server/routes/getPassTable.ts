@@ -10,6 +10,7 @@ import { existsSync } from 'fs';
 import { serverPolicyAuth } from '../ServerPolicy';
 
 export async function getPassTable(req: Request, res: Response) {
+  console.log('getPassTable');
   const policy = serverPolicyAuth(req, res);
   if (policy == null) return;
   const username = getUsernameStr(req, res);
@@ -29,6 +30,7 @@ export async function getPassTable(req: Request, res: Response) {
     type: 'read',
     path,
     password,
+    prependLog: '  ',
     operate: async (user, state, readFile) => {
       await user.loadBody(readFile);
       const data = await user.getDataBuffer();

@@ -10,6 +10,7 @@ import {
 } from '../utils';
 
 export async function postNewAccount(req: Request, res: Response) {
+  console.log('postNewAccount');
   const policy = serverPolicyAuth(req, res);
   if (policy == null) return;
   const username = getUsernameStr(req, res);
@@ -27,19 +28,22 @@ export async function postNewAccount(req: Request, res: Response) {
     type: 'new',
     path,
     password: newPass,
-    operate: async (user, state, writeable) => {
-      if (!(await policy.createAccountHook(username, dataFromClient))) {
-        res.status(400).json({
-          type: 'E_POLICY',
-          action: 'createAccount',
-          message: 'action was blocked by server policy',
-        });
-        state.responded = true;
+    prependLog: '  ',
+    preOpenWritable: async (state) => {
+      if (await policy.createAccountHook(username, dataFromClient)) {
         return;
       }
+      res.status(400).json({
+        type: 'E_POLICY',
+        action: 'createAccount',
+        message: 'action was blocked by server policy',
+      });
+      state.responded = true;
+    },
+    operate: async (user, state, writable) => {
       await user.setPassword(newPass);
       await user.putDataBuffer(dataFromClient);
-      await user.save(writeable);
+      await user.save(writable);
       state.completed = true;
       state.responded = true;
     },
