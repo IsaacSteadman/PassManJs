@@ -9,7 +9,7 @@ import {
   getUserDataBufferV2,
   getUserInfo,
   getUsernameStr,
-} from './helpers';
+} from '../utils';
 
 export async function passTableNewPass(req: Request, res: Response) {
   const policy = serverPolicyAuth(req, res);
@@ -36,6 +36,8 @@ export async function passTableNewPass(req: Request, res: Response) {
       res.status(412).json({
         type: 'E_PRECONDITION',
         preconditionChecksFailed,
+        message:
+          'it is likely that your password vault was modified by another session since the time the vault for the current session was loaded',
       });
       state.responded = true;
     },

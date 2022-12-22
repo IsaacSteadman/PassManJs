@@ -7,7 +7,7 @@ import {
   getUserDataBufferV2,
   getUserInfo,
   getUsernameStr,
-} from './helpers';
+} from '../utils';
 
 export async function postNewAccount(req: Request, res: Response) {
   const policy = serverPolicyAuth(req, res);

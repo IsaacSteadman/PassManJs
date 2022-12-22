@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { existsSync } from 'fs';
+import { stat } from 'fs/promises';
 import { serverPolicyAuth } from '../ServerPolicy';
 import {
   getBinaryBodyData,
@@ -8,7 +9,8 @@ import {
   getUserDataBufferV2,
   getUserInfo,
   getUsernameStr,
-} from './helpers';
+  stringifyDateHeader,
+} from '../utils';
 
 export async function putPassTable(req: Request, res: Response) {
   const policy = serverPolicyAuth(req, res);
@@ -39,6 +41,8 @@ export async function putPassTable(req: Request, res: Response) {
       res.status(412).json({
         type: 'E_PRECONDITION',
         preconditionChecksFailed,
+        message:
+          'it is likely that your password vault was modified by another session since the time the vault for the current session was loaded',
       });
       state.responded = true;
     },
@@ -50,14 +54,20 @@ export async function putPassTable(req: Request, res: Response) {
           message: 'action was blocked by server policy',
         });
         state.responded = true;
+        return;
       }
       await user.putDataBuffer(dataFromClient);
       await user.save(writeable);
-      res.status(200).json({
-        type: 'SUCCESS',
-        message: 'successfully saved password table',
-      });
       state.completed = true;
+    },
+    afterSavedIfNotResponded: async (state) => {
+      res
+        .status(200)
+        .header('last-modified', stringifyDateHeader((await stat(path)).mtime))
+        .json({
+          type: 'SUCCESS',
+          message: 'successfully saved password table',
+        });
       state.responded = true;
     },
     authErr: async (state, err) => {

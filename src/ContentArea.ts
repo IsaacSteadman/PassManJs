@@ -15,6 +15,7 @@ import {
   copyTextToClipboard,
 } from './EditTable';
 import { generateOtp } from './mfa';
+import { ActionResult } from './types';
 
 interface PassTableColumnSpec {
   name: string;
@@ -448,25 +449,25 @@ class ImportOptions {
 
 export class ContentArea {
   div: HTMLDivElement;
-  _changed: boolean;
   data: PassTableJson[] | null;
   impPane: ImportOptions;
   logoutBtn: HTMLButtonElement;
   onPostLogout: null | (() => any);
   onTables: null | ((tables: PassTableJson[] | null) => any); // for PassGen, is called whenever a table is added/removed/login/logout
-  onPreLogout: null | ((buf: ArrayBuffer) => Promise<any>);
+  onPreLogout: null | ((buf: ArrayBuffer) => Promise<ActionResult>);
   errorLog: ErrorLog;
   statSpan: HTMLSpanElement;
   saveBtn: HTMLButtonElement;
   dataDiv: HTMLDivElement;
   tables: PasswordTable[];
+  changed: boolean;
+
   constructor(div: HTMLDivElement, errorLog: ErrorLog) {
     this.div = div;
     this.impPane = new ImportOptions(
       this,
       <HTMLFormElement>document.getElementById('imp-pane')
     );
-    this._changed = false;
     this.data = null;
     for (let i = 0; i < div.children.length; ++i) {
       const elem = div.children[i];
@@ -490,20 +491,29 @@ export class ContentArea {
     this.tables = [];
     window.addEventListener('beforeunload', this);
   }
-  set changed(b: boolean) {
-    this._changed = b;
-    if (b) {
+  updateStatus(
+    options:
+      | { error?: false; changed?: boolean }
+      | { error: true; errorNumber: number }
+  ) {
+    if (!options.error) {
+      if (options.changed != null) {
+        this.changed = options.changed;
+        if (options.changed) {
+          this.div.style.borderColor = 'red';
+          this.statSpan.style.color = 'red';
+          this.statSpan.innerText = 'You have pending changes to be saved';
+        } else {
+          this.div.style.borderColor = 'green';
+          this.statSpan.style.color = 'green';
+          this.statSpan.innerText = 'The password table has been saved';
+        }
+      }
+    } else {
       this.div.style.borderColor = 'red';
       this.statSpan.style.color = 'red';
-      this.statSpan.innerText = 'You have pending changes to be saved';
-    } else {
-      this.div.style.borderColor = 'green';
-      this.statSpan.style.color = 'green';
-      this.statSpan.innerText = 'The password table has been saved';
+      this.statSpan.innerHTML = `Failed to save pending changes (see <span style="color: purple">[Error ${options.errorNumber}]</span> at the bottom of the page for details)`;
     }
-  }
-  get changed(): boolean {
-    return this._changed;
   }
   setWaiting(msg: string) {
     this.statSpan.style.color = 'purple';
@@ -521,14 +531,18 @@ export class ContentArea {
     ) {
       tr.parentElement.removeChild(tr);
       this.data.splice(r, 1);
-      this.changed = true;
+      this.updateStatus({
+        changed: true,
+      });
     }
   }
   loadTableBuf(buf: ArrayBuffer) {
     const dv = new DataView(buf);
     if (dv.getUint32(0, true) & 0x80000000) {
       this.loadTableJson(JSON.parse(arrayBufferToString(buf.slice(4))));
-      this.changed = false;
+      this.updateStatus({
+        changed: false,
+      });
     } else {
       throw new TypeError('only JSON password vaults are supported right now');
     }
@@ -542,7 +556,9 @@ export class ContentArea {
       this.dataDiv.appendChild(div);
       const ptbl = new PasswordTable(this, div, title, spec, data);
       ptbl.onSetChanged = (b) => {
-        this.changed = b;
+        this.updateStatus({
+          changed: b,
+        });
       };
       tables.push(ptbl);
       this.dataDiv.appendChild(div);
@@ -551,7 +567,9 @@ export class ContentArea {
     if (typeof this.onTables === 'function') {
       this.onTables(this.data);
     }
-    this.changed = false;
+    this.updateStatus({
+      changed: false,
+    });
   }
   handleEvent(e: Event) {
     if (e.currentTarget === window) {
@@ -570,13 +588,22 @@ export class ContentArea {
         stringToArrayBuffer(JSON.stringify(this.data))
       );
       this.setWaiting('Saving changes');
-      this.onPreLogout?.(buf).then((x) => {
+      this.onPreLogout?.(buf).then((result) => {
         this.tables.forEach((tbl) => {
           tbl.oldData = cloneData(tbl.data);
           tbl.highlightDiffs.checked = false;
           tbl.updateDiffs();
         });
-        this.changed = false;
+        if (result.ok) {
+          this.updateStatus({
+            changed: false,
+          });
+        } else {
+          this.updateStatus({
+            error: true,
+            errorNumber: result.errorNumber,
+          });
+        }
       });
     } else if (tgt === this.logoutBtn) {
       const ver = new ArrayBuffer(4);
@@ -592,7 +619,9 @@ export class ContentArea {
         if (typeof this.onTables === 'function') {
           this.onTables(this.data);
         }
-        this.changed = false;
+        this.updateStatus({
+          changed: false,
+        });
         this.onPostLogout?.();
       });
     }

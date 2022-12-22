@@ -4,7 +4,8 @@ import {
   getPassword,
   getUserInfo,
   getUserDataBufferV2,
-} from './helpers';
+  stringifyDateHeader,
+} from '../utils';
 import { existsSync } from 'fs';
 import { serverPolicyAuth } from '../ServerPolicy';
 
@@ -41,6 +42,10 @@ export async function getPassTable(req: Request, res: Response) {
         return;
       }
       res.status(200);
+      res.header(
+        'last-modified',
+        stringifyDateHeader((await readFile.fh.stat()).mtime)
+      );
       if (req.accepts(['octet-stream', 'json']) === 'octet-stream') {
         res.header('content-type', 'application/octet-stream');
         res.write(data);

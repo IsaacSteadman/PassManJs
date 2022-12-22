@@ -58,3 +58,4 @@ app.post('/pass-table', postNewAccount);
 
 console.log(`listening on port: ${PORT}`);
 server.listen(PORT);
+console.log(`visit http://localhost:${PORT}/ if developing locally`);

@@ -17,16 +17,14 @@ export class KeyedShareableLock {
     const entry = this.entries[key];
     if (entry == null) {
       this.entries[key] = {
-        mode: 'shared',
+        mode,
         others: 0,
         waiting: [],
       };
     } else if (mode === 'shared' && entry.mode === 'shared') {
       ++entry.others;
     } else {
-      return new Promise((resolve) =>
-        entry.waiting.push({ mode: 'shared', resolve })
-      );
+      return new Promise((resolve) => entry.waiting.push({ mode, resolve }));
     }
   }
   release(key: string, mode: LockMode): void {
