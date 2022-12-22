@@ -1,4 +1,4 @@
-How to setup PassManJs
+# How to setup PassManJs
 1. clone the project
 2. if you want a full production deployment host on a domain, then follow these steps
   1. make sure you have the star deployer available (from the ImperialStarDeployer repo)
@@ -28,3 +28,12 @@ How to setup PassManJs
   2. to get dependencies run `yarn install`
   3. to build run `yarn run build-client && yarn run build-server`
   4. to run the server and make the client available to a browser run `yarn run start-server`
+
+# Current Considerations
+- avoid DoS attack surface
+  - only make changes to the file system after the user is authenticated and request is permitted by server policy
+  - ony read user header before client is authenticated
+    - also avoids unauthenticated metadata leakage
+  - server policy was created primarily to mitigate DoS attack
+    - the server may still get overloaded in terms of CPU and network capacity, but the storage on the host will not if you limit account creation and account size with server policy (see `class LimitedPolicy` in ServerPolicy.ts)
+- lock the userLock before any filesystem access
