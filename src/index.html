@@ -18,7 +18,8 @@
     </form>
     <div id="login">
       Login to an existing account
-      <form>
+      <!--onsubmit is false in case the browser fails to load javascript we don't want to leak passwords-->
+      <form onsubmit="return false;">
         Username: <input type="text" name="username" /> <br />
         Password: <input type="password" name="password" /> (show)
         <input type="checkbox" name="show-password" /> <br />
