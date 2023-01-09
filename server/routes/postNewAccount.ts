@@ -45,6 +45,11 @@ export async function postNewAccount(req: Request, res: Response) {
       await user.putDataBuffer(dataFromClient);
       await user.save(writable);
       state.completed = true;
+      res.status(201).json({
+        type: 'SUCCESS',
+        action: 'createAccount',
+        message: 'account created',
+      });
       state.responded = true;
     },
     authErr: async (state, err) => {
