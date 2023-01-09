@@ -10,7 +10,7 @@
   </head>
 
   <body>
-    <form id="serverAccess">
+    <form id="serverAccess" method="dialog">
       Server Access Namespace: <input type="text" name="server_ns" /> <br />
       Server Access Password:
       <input type="password" name="server_pass" /> (show)
@@ -19,7 +19,7 @@
     <div id="login">
       Login to an existing account
       <!--onsubmit is false in case the browser fails to load javascript we don't want to leak passwords-->
-      <form onsubmit="return false;">
+      <form method="dialog">
         Username: <input type="text" name="username" /> <br />
         Password: <input type="password" name="password" /> (show)
         <input type="checkbox" name="show-password" /> <br />
@@ -34,7 +34,7 @@
     </div>
     <div id="register" style="display: none">
       Register for an account
-      <form>
+      <form method="dialog">
         Username: <input type="text" name="username" /> <br />
         Password: <input type="password" name="new_pass" /> (show)
         <input type="checkbox" name="show-new-pass" /> <br />
@@ -56,7 +56,7 @@
       <button name="logout">Logout</button>
     </div>
     <div id="passgen-panel">
-      <form>
+      <form method="dialog">
         Specify Allowed Symbols:
         <input
           type="text"
@@ -103,6 +103,7 @@
         border: solid 1px gray;
         box-shadow: 0 0 10px #aaa;
       "
+      method="dialog"
     >
       <input type="file" name="imp-file" /> <br />
       Overwrite Matching: <input type="checkbox" name="overwrite" /> <br />
