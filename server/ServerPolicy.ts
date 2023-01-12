@@ -1,16 +1,35 @@
 import { timingSafeEqual } from 'crypto';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { watchFile } from 'fs';
 import { readFile, writeFile } from 'fs/promises';
 import { resolve } from 'path';
 import { serverConfig } from './consts';
+import { fileLock } from './utils';
 
-const policies = {};
+type PolicyConfig =
+  | { PolicyType: 'ROOT_POLICY'; Password: string }
+  | { PolicyType: 'NULL_POLICY'; Password: string }
+  | {
+      PolicyType: 'LIMITED_POLICY';
+      Password: string;
+      MaxAccounts: number;
+      NumAccounts: number;
+      MaxDataSize: number;
+    };
+
+const policies: Record<string, PolicyConfig> = {};
 
 const policyPath = resolve(__dirname, '../policies.json');
 
 async function loadPolicies() {
-  const str = await readFile(policyPath, 'utf8');
+  const str = await (async () => {
+    await fileLock.acquire(policyPath, 'shared');
+    try {
+      return await readFile(policyPath, 'utf8');
+    } finally {
+      fileLock.release(policyPath, 'shared');
+    }
+  })();
   const data = JSON.parse(str);
   if (data instanceof Array)
     throw new TypeError('expected object (got array) for file "policies.json"');
@@ -27,10 +46,15 @@ async function loadPolicies() {
 }
 
 loadPolicies()
-  .catch(async function (err) {
+  .catch(async (err) => {
     if (err.code === 'ENOENT') {
       console.log('no policies.json found, creating a new one');
-      await writeFile(policyPath, '{}', 'utf8');
+      await fileLock.acquire(policyPath, 'exclusive');
+      try {
+        await writeFile(policyPath, '{}', 'utf8');
+      } finally {
+        fileLock.release(policyPath, 'exclusive');
+      }
     } else {
       return Promise.reject(err);
     }
@@ -87,7 +111,12 @@ export abstract class ServerPolicy {
         n = null;
       }
       const data = JSON.stringify(policies, null, n);
-      await writeFile(policyPath, data, 'utf8');
+      await fileLock.acquire(policyPath, 'exclusive');
+      try {
+        await writeFile(policyPath, data, 'utf8');
+      } finally {
+        fileLock.release(policyPath, 'exclusive');
+      }
     }
   }
 }
@@ -167,61 +196,87 @@ export class RootPolicy extends ServerPolicy {
   }
 }
 
-export const serverPolicyMap = {
+export const serverPolicyMap: Record<
+  PolicyConfig['PolicyType'],
+  new (policyData: { [key: string]: any }, policyName: string) => ServerPolicy
+> = {
   ROOT_POLICY: RootPolicy,
   NULL_POLICY: NullPolicy,
   LIMITED_POLICY: LimitedPolicy,
 };
 
-export function serverPolicyAuth(
-  req: Request,
-  res: Response
-): ServerPolicy | null {
+export function serverPolicyAuthThrow(req: Request): ServerPolicy {
   const serverNs = req.query.server_ns;
-  if (serverNs != null && typeof serverNs === 'string') {
+  const serverPass = req.query.server_pass;
+  if (typeof serverPass !== 'string') {
+    throw {
+      type: 'json-response',
+      jsonStatus: 400,
+      jsonBody: {
+        type: 'E_SERVER_PASS',
+        queryParam: 'server_pass',
+        message:
+          'improper/multiple/missing usage of server_pass in query string',
+      },
+    };
+  }
+  if (serverNs != null) {
+    if (typeof serverNs !== 'string') {
+      throw {
+        type: 'json-response',
+        jsonStatus: 400,
+        jsonBody: {
+          type: 'E_SERVER_NS',
+          queryParam: 'server_ns',
+          message: 'improper/multiple usage of server_ns in query string',
+        },
+      };
+    }
     const policy = policies[serverNs];
     if (policy == null) {
-      res.status(400).json({
-        type: 'E_SERVER_NS',
-        queryParams: ['server_ns', 'server_pass'],
-        message: 'unrecognized server_ns or server_pass',
-      });
-      return null;
+      throw {
+        type: 'json-response',
+        jsonStatus: 400,
+        jsonBody: {
+          type: 'E_SERVER_NS',
+          queryParams: ['server_ns', 'server_pass'],
+          message: 'unrecognized server_ns or server_pass',
+        },
+      };
     }
     const server = Buffer.from(policy.Password, 'utf8');
-    const client = Buffer.from(<string>req.query.server_pass, 'utf8');
+
+    const client = Buffer.from(serverPass, 'utf8');
     if (server.length !== client.length || !timingSafeEqual(server, client)) {
-      res.status(400).json({
-        type: 'E_SERVER_NS',
-        queryParams: ['server_ns', 'server_pass'],
-        message: 'unrecognized server_ns or server_pass',
-      });
-      return null;
+      throw {
+        type: 'json-response',
+        jsonStatus: 400,
+        jsonBody: {
+          type: 'E_SERVER_NS',
+          queryParams: ['server_ns', 'server_pass'],
+          message: 'unrecognized server_ns or server_pass',
+        },
+      };
     }
     const policyClass = serverPolicyMap[policy.PolicyType];
     if (policyClass == null) {
       console.warn(`Unrecognized PolicyType string: ${policy.PolicyType}`);
-      return new serverPolicyMap['NULL_POLICY'](null, null);
+      return new NullPolicy(null, null);
     }
     return new policyClass(policy, serverNs);
-  } else if (serverNs == null) {
-    const server = Buffer.from(serverConfig.ServerAccessPassword, 'utf8');
-    const client = Buffer.from(<string>req.query.server_pass, 'utf8');
-    if (server.length !== client.length || !timingSafeEqual(server, client)) {
-      res.status(400).json({
+  }
+  const server = Buffer.from(serverConfig.ServerAccessPassword, 'utf8');
+  const client = Buffer.from(<string>req.query.server_pass, 'utf8');
+  if (server.length !== client.length || !timingSafeEqual(server, client)) {
+    throw {
+      type: 'json-response',
+      jsonStatus: 400,
+      jsonBody: {
         type: 'E_AUTH',
         query_param: 'server_pass',
         message: 'bad server access password',
-      });
-      return null;
-    }
-    return new serverPolicyMap['ROOT_POLICY'](null, null);
-  } else {
-    res.status(400).json({
-      type: 'E_SERVER_NS',
-      queryParam: 'server_ns',
-      message: 'improper/multiple usage of server_ns in query string',
-    });
-    return null;
+      },
+    };
   }
+  return new RootPolicy(null, null);
 }

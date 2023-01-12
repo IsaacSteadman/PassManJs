@@ -1,4 +1,6 @@
-import type { Request, Response } from 'express';
+import type { Request } from 'express';
+import { lpad } from './lpad';
+import type { WrappedFile } from './WrappedFile';
 
 export type Conditions = { ifUnmodifiedSince?: Date; ifModifiedSince?: Date };
 
@@ -42,36 +44,35 @@ export function parseDateHeader(header: string): Date | null {
   }
 }
 
-function lpad(n: number, s: string, ch: string = '0') {
-  return ch.repeat(Math.max(0, n - s.length)) + s;
-}
-
 export function stringifyDateHeader(dateObj: Date): string {
   const day = 'Sun|Mon|Tue|Wed|Thu|Fri|Sat'.split('|')[dateObj.getUTCDay()];
-  const date = dateObj.getUTCDate();
+  const date = lpad(2, dateObj.getUTCDate());
   const month = 'Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec'.split('|')[
     dateObj.getUTCMonth()
   ];
-  const year = dateObj.getUTCFullYear();
-  const hours = lpad(2, `${dateObj.getUTCHours()}`);
-  const minutes = lpad(2, `${dateObj.getUTCMinutes()}`);
-  const seconds = lpad(2, `${dateObj.getUTCSeconds()}`);
+  const year = lpad(4, dateObj.getUTCFullYear());
+  const hours = lpad(2, dateObj.getUTCHours());
+  const minutes = lpad(2, dateObj.getUTCMinutes());
+  const seconds = lpad(2, dateObj.getUTCSeconds());
   return `${day}, ${date} ${month} ${year} ${hours}:${minutes}:${seconds} GMT`;
 }
 
-export function getConditions(req: Request, res: Response): Conditions | null {
+export function getConditionsThrow(req: Request): Conditions {
   const unsupportedConditionsAttempted = [
     'if-range',
     'if-match',
     'if-none-match',
   ].filter((header) => req.header(header) != null);
   if (unsupportedConditionsAttempted.length) {
-    res.status(400).json({
-      type: 'E_UNSUPPORTED_CONDITIONAL_HEADER',
-      message: 'unsupported conditional header was specified',
-      unsupportedConditionsAttempted,
-    });
-    return null;
+    throw {
+      type: 'json-response',
+      jsonStatus: 400,
+      jsonBody: {
+        type: 'E_UNSUPPORTED_CONDITIONAL_HEADER',
+        message: 'unsupported conditional header was specified',
+        unsupportedConditionsAttempted,
+      },
+    };
   }
   const ifUnmodifiedSinceHeader = req.header('if-unmodified-since');
   const ifModifiedSinceHeader = req.header('if-modified-since');
@@ -94,11 +95,37 @@ export function getConditions(req: Request, res: Response): Conditions | null {
     }
   }
   if (failures.length) {
-    res.status(400).json({
-      type: 'E_INVAL_CONDITIONAL_HEADER',
-      invalidConditionalHeaders: failures,
-    });
-    return null;
+    throw {
+      type: 'json-response',
+      jsonStatus: 400,
+      jsonBody: {
+        type: 'E_INVAL_CONDITIONAL_HEADER',
+        invalidConditionalHeaders: failures,
+      },
+    };
   }
   return result;
+}
+
+const floorRadix = (n: number, radix: number) => n - (n % radix);
+
+export async function checkConditions(
+  conditions: Conditions,
+  readable: WrappedFile
+) {
+  const { ifModifiedSince, ifUnmodifiedSince } = conditions;
+  const failures: string[] = [];
+  if (ifModifiedSince != null || ifUnmodifiedSince != null) {
+    const inputMTime = (await readable.getMTime()).getTime();
+    const mtime = floorRadix(inputMTime, 1000);
+
+    if (ifModifiedSince != null && mtime <= ifModifiedSince.getTime()) {
+      failures.push('if-modified-since');
+    }
+
+    if (ifUnmodifiedSince != null && mtime > ifUnmodifiedSince.getTime()) {
+      failures.push('if-unmodified-since');
+    }
+  }
+  return failures;
 }

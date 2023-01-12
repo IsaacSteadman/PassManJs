@@ -6,7 +6,6 @@
   "dependencies": {
     "@parcel/transformer-less": "2.8.0",
     "@types/express": "^4.17.0",
-    "@types/jest": "^28.1.7",
     "@types/node": "^16.0.0",
     "express": "^4.17.1",
     "less": "^4.1.3",
@@ -21,6 +20,7 @@
     "build-server": "yarn run tsc ./server/app.ts --target ES2020 --outDir ./dist-server --module commonjs",
     "start-client": "yarn run parcel serve src/index.html",
     "start-server": "yarn run build-server && node ./dist-server/app.js",
+    "start-testable": "NODE_ENV=development MODE=E2E_TESTING_MOCKED yarn run start-server",
     "start": "yarn run start-server"
   }
 }

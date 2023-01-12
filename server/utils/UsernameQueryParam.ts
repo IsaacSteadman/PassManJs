@@ -1,27 +1,18 @@
-import type { Request, Response } from 'express';
+import type { Request } from 'express';
+import { sanitizeUsername } from '../client-common/sanitizeUsername';
 
-export function sanitizeUsername(name: string) {
-  if (typeof name !== 'string') return false;
-  if (name === '.') return false;
-  if (name === '..') return false;
-  for (let i = 0; i < name.length; ++i) {
-    const ch = name.charAt(i);
-    if (!/[A-Za-z0-9_\.$\-]/.test(ch)) {
-      return false;
-    }
+export function getUsernameStrThrow(req: Request): string {
+  const username = req.query.username;
+  if (typeof username === 'string' && sanitizeUsername(username)) {
+    return username;
   }
-  return true;
-}
-
-export function getUsernameStr(req: Request, res: Response): string | null {
-  const username = <string>req.query.username;
-  if (!sanitizeUsername(username)) {
-    res.status(400).json({
+  throw {
+    type: 'json-response',
+    jsonStatus: 400,
+    jsonBody: {
       type: 'E_AUTH',
       query_param: 'username',
       message: 'bad username characters',
-    });
-    return null;
-  }
-  return username;
+    },
+  };
 }
