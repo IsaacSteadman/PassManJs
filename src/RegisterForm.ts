@@ -6,19 +6,7 @@ import {
 } from './StrUtils';
 import { encryptAes256CBC, subtle } from './CryptoUtils';
 import { ErrorLog } from './ErrorLog';
-
-function sanitizeUsername(name: string) {
-  if (typeof name !== 'string') return false;
-  if (name === '.') return false;
-  if (name === '..') return false;
-  for (let i = 0; i < name.length; ++i) {
-    const ch = name.charAt(i);
-    if (!/[A-Za-z0-9_\.$-]/.test(ch)) {
-      return false;
-    }
-  }
-  return true;
-}
+import { sanitizeUsername } from '../server/client-common/sanitizeUsername';
 
 const defaultJson = [
   {
@@ -53,6 +41,7 @@ export class RegisterForm {
   showPassword: HTMLInputElement;
   confirmPassword: HTMLInputElement;
   errorLog: ErrorLog;
+  usernameValidityMessage: HTMLDivElement;
   constructor(
     div: HTMLDivElement,
     serverAccess: ServerAccessForm,
@@ -61,12 +50,15 @@ export class RegisterForm {
     this.div = div;
     this.form = div.getElementsByTagName('form')[0];
     const elems = this.form.elements;
-    this.username = <HTMLInputElement>elems.namedItem('username');
-    this.password = <HTMLInputElement>elems.namedItem('new_pass');
-    this.confirmPassword = <HTMLInputElement>(
-      elems.namedItem('confirm_new_pass')
-    );
-    this.showPassword = <HTMLInputElement>elems.namedItem('show-new-pass');
+    this.username = elems.namedItem('username') as HTMLInputElement;
+    this.usernameValidityMessage = this.form.getElementsByClassName(
+      'username-validity-message'
+    )[0] as HTMLDivElement;
+    this.password = elems.namedItem('new_pass') as HTMLInputElement;
+    this.confirmPassword = elems.namedItem(
+      'confirm_new_pass'
+    ) as HTMLInputElement;
+    this.showPassword = elems.namedItem('show-new-pass') as HTMLInputElement;
     this.showPassword.addEventListener('change', this);
     this.serverAccess = serverAccess;
     this.form.addEventListener('submit', this);
@@ -86,12 +78,12 @@ export class RegisterForm {
         alert('password and confirm password must match');
         return;
       }
-      if (!sanitizeUsername(this.username.value)) {
-        alert(
-          'username is not valid (must contain ony letters, numbers, "_", ".", "$", or "-"'
-        );
+      const usernameValid = sanitizeUsername(this.username.value);
+      if (!usernameValid) {
+        this.usernameValidityMessage.style.display = '';
         return;
       }
+      this.usernameValidityMessage.style.display = 'none';
       const password = stringToArrayBuffer(this.password.value);
       const passwordKeyPromise = Promise.resolve(
         subtle.importKey('raw', password, { name: 'PBKDF2' }, false, [
@@ -124,7 +116,7 @@ export class RegisterForm {
           console.log('encryptionKeyPromise', err);
           return Promise.reject(err);
         });
-      const authenticationKeyPromise = <Promise<ArrayBuffer>>passwordKeyPromise
+      const authenticationKeyPromise = passwordKeyPromise
         .then((key) => {
           return subtle.deriveBits(
             {

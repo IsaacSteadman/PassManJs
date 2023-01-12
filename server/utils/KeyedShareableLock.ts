@@ -141,3 +141,5 @@ export class KeyedShareableLock {
     }
   }
 }
+
+export const fileLock = new KeyedShareableLock();

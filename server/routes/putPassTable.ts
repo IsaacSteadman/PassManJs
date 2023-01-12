@@ -1,92 +1,80 @@
-import { Request, Response } from 'express';
-import { existsSync } from 'fs';
-import { stat } from 'fs/promises';
-import { serverPolicyAuth } from '../ServerPolicy';
+import { serverPolicyAuthThrow } from '../ServerPolicy';
 import {
-  getBinaryBodyData,
-  getConditions,
-  getPassword,
-  getUserDataBufferV2,
+  checkConditions,
+  getBinaryBodyDataThrow,
+  getConditionsThrow,
+  getPasswordThrow,
   getUserInfo,
-  getUsernameStr,
+  getUsernameStrThrow,
+  UserOperationArg,
+  UserOperationReturn,
   stringifyDateHeader,
 } from '../utils';
 
-export async function putPassTable(req: Request, res: Response) {
-  console.log('putPassTable');
-  const policy = serverPolicyAuth(req, res);
-  if (policy == null) return;
-  const username = getUsernameStr(req, res);
-  if (username == null) return;
-  const password = getPassword(req, res);
-  if (password == null) return;
-  const dataFromClient = getBinaryBodyData(req, res);
-  if (dataFromClient == null) return;
-  const conditions = getConditions(req, res);
-  if (conditions == null) return;
+export async function putPassTable({
+  acquireRead,
+  getWritable,
+  req,
+  res,
+  state,
+  setUserFilePath,
+  upgradeLock,
+  getReadable,
+  authUser,
+  debugLog,
+  fsSource,
+}: UserOperationArg): Promise<UserOperationReturn> {
+  debugLog('putPassTable');
+  const policy = serverPolicyAuthThrow(req);
+  const username = getUsernameStrThrow(req);
+  const password = getPasswordThrow(req);
+  const dataFromClient = getBinaryBodyDataThrow(req);
+  const conditions = getConditionsThrow(req);
   const { path } = getUserInfo(username);
-  if (!existsSync(path)) {
-    res.status(400).json({
-      type: 'E_AUTH',
-      query_param: 'username|password',
-      message: 'username or password is incorrect',
-    });
-    return;
+  await setUserFilePath(path);
+  await acquireRead();
+  const user = await authUser(password);
+  if (!(await policy.updateAccountHook(username, dataFromClient))) {
+    throw {
+      type: 'json-response',
+      jsonStatus: 400,
+      jsonBody: {
+        type: 'E_POLICY',
+        action: 'updateAccount',
+        message: 'action was blocked by server policy',
+      },
+    };
   }
-  await getUserDataBufferV2({
-    type: 'write',
-    path,
-    password,
-    prependLog: '  ',
-    conditions,
-    preconditionErr: async (state, preconditionChecksFailed) => {
-      res.status(412).json({
+  const readable = await getReadable();
+  const preconditionChecksFailed = await checkConditions(conditions, readable);
+  if (preconditionChecksFailed.length) {
+    throw {
+      type: 'json-response',
+      jsonStatus: 412,
+      jsonBody: {
         type: 'E_PRECONDITION',
         preconditionChecksFailed,
         message:
           'your password vault was probably modified by another session the current session was loaded',
+      },
+    };
+  }
+  await upgradeLock();
+  const pWritable = getWritable();
+  await user.putDataBuffer(dataFromClient);
+  await user.save(await pWritable);
+  state.completed = true;
+  return async () => {
+    res
+      .status(200)
+      .header(
+        'last-modified',
+        stringifyDateHeader(await fsSource.getMTime(path))
+      )
+      .json({
+        type: 'SUCCESS',
+        message: 'successfully saved password table',
       });
-      state.responded = true;
-    },
-    preOpenWritable: async (state) => {
-      if (await policy.updateAccountHook(username, dataFromClient)) {
-        return;
-      }
-      res.status(400).json({
-        type: 'E_POLICY',
-        action: 'updateAccount',
-        message: 'action was blocked by server policy',
-      });
-      state.responded = true;
-    },
-    operate: async (user, state, readable, writable) => {
-      await user.putDataBuffer(dataFromClient);
-      await user.save(writable);
-      state.completed = true;
-    },
-    afterSavedIfNotResponded: async (state) => {
-      res
-        .status(200)
-        .header('last-modified', stringifyDateHeader((await stat(path)).mtime))
-        .json({
-          type: 'SUCCESS',
-          message: 'successfully saved password table',
-        });
-      state.responded = true;
-    },
-    authErr: async (state, err) => {
-      res.status(400).json({
-        type: 'E_AUTH',
-        query_param: 'username|password',
-        message: 'username or password is incorrect',
-      });
-      state.responded = true;
-      if (err == null) {
-        console.log('auth error, username: ' + username);
-      } else {
-        console.error('internal server error');
-        console.error(err);
-      }
-    },
-  });
+    state.responded = true;
+  };
 }

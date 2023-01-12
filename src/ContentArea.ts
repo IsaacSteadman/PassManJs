@@ -589,12 +589,12 @@ export class ContentArea {
       );
       this.setWaiting('Saving changes');
       this.onPreLogout?.(buf).then((result) => {
-        this.tables.forEach((tbl) => {
-          tbl.oldData = cloneData(tbl.data);
-          tbl.highlightDiffs.checked = false;
-          tbl.updateDiffs();
-        });
         if (result.ok) {
+          this.tables.forEach((tbl) => {
+            tbl.oldData = cloneData(tbl.data);
+            tbl.highlightDiffs.checked = false;
+            tbl.updateDiffs();
+          });
           this.updateStatus({
             changed: false,
           });

@@ -36,6 +36,10 @@
       Register for an account
       <form method="dialog">
         Username: <input type="text" name="username" /> <br />
+        <div style="display: none" class="username-validity-message">
+          Username may only contain letters, numbers, "_", ".", "$", or "-" and
+          must start with a letter or a number
+        </div>
         Password: <input type="password" name="new_pass" /> (show)
         <input type="checkbox" name="show-new-pass" /> <br />
         Confirm Password <input type="password" name="confirm_new_pass" />

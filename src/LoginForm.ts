@@ -114,7 +114,7 @@ export class LoginForm {
     } catch (err) {
       return {
         ok: false,
-        errorNumber: this.errorLog.logError(err),
+        errorNumber: this.errorLog.logError(await err),
       };
     }
   }
@@ -242,7 +242,7 @@ export class LoginForm {
       }
     } catch (err) {
       this.authKey = null;
-      this.errorLog.logError(err);
+      this.errorLog.logError(await err);
     }
   }
 }

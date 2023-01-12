@@ -1,83 +1,83 @@
-import { Request, Response } from 'express';
-import { existsSync } from 'fs';
-import { serverPolicyAuth } from '../ServerPolicy';
+import { serverPolicyAuthThrow } from '../ServerPolicy';
 import {
-  getBinaryBodyData,
-  getConditions,
-  getNewPass,
-  getPassword,
-  getUserDataBufferV2,
+  checkConditions,
+  getBinaryBodyDataThrow,
+  getConditionsThrow,
+  getNewPassThrow,
+  getPasswordThrow,
   getUserInfo,
-  getUsernameStr,
+  getUsernameStrThrow,
+  UserOperationArg,
+  UserOperationReturn,
+  stringifyDateHeader,
 } from '../utils';
 
-export async function passTableNewPass(req: Request, res: Response) {
-  console.log('passTableNewPass');
-  const policy = serverPolicyAuth(req, res);
-  if (policy == null) return;
-  const username = getUsernameStr(req, res);
-  if (username == null) return;
-  const password = getPassword(req, res);
-  if (password == null) return;
-  const newPass = getNewPass(req, res);
-  if (newPass == null) return;
-  const dataFromClient = getBinaryBodyData(req, res);
-  if (dataFromClient == null) return;
-  const conditions = getConditions(req, res);
-  if (conditions == null) return;
-
+export async function passTableNewPass({
+  acquireRead,
+  getWritable,
+  req,
+  res,
+  state,
+  setUserFilePath,
+  upgradeLock,
+  getReadable,
+  authUser,
+  debugLog,
+  fsSource,
+}: UserOperationArg): Promise<UserOperationReturn> {
+  debugLog('passTableNewPass');
+  const policy = serverPolicyAuthThrow(req);
+  const username = getUsernameStrThrow(req);
+  const password = getPasswordThrow(req);
+  const newPass = getNewPassThrow(req);
+  const dataFromClient = getBinaryBodyDataThrow(req);
+  const conditions = getConditionsThrow(req);
   const { path } = getUserInfo(username);
-  if (!existsSync(path)) return;
-  await getUserDataBufferV2({
-    type: 'write',
-    path,
-    password,
-    prependLog: '  ',
-    conditions,
-    preconditionErr: async (state, preconditionChecksFailed) => {
-      res.status(412).json({
+  await setUserFilePath(path);
+  await acquireRead();
+  const user = await authUser(password);
+  if (!(await policy.updatePasswordHook(username, dataFromClient))) {
+    throw {
+      type: 'json-response',
+      jsonStatus: 400,
+      jsonBody: {
+        type: 'E_POLICY',
+        action: 'updatePassword',
+        message: 'action was blocked by server policy',
+      },
+    };
+  }
+  const readable = await getReadable();
+  const preconditionChecksFailed = await checkConditions(conditions, readable);
+  if (preconditionChecksFailed.length) {
+    throw {
+      type: 'json-response',
+      jsonStatus: 412,
+      jsonBody: {
         type: 'E_PRECONDITION',
         preconditionChecksFailed,
         message:
           'your password vault was probably modified by another session the current session was loaded',
-      });
-      state.responded = true;
-    },
-    preOpenWritable: async (state) => {
-      if (await policy.updatePasswordHook(username, dataFromClient)) {
-        return;
-      }
-      res.status(400).json({
-        type: 'E_POLICY',
-        action: 'updatePassword',
-        message: 'action was blocked by server policy',
-      });
-      state.responded = true;
-    },
-    operate: async (user, state, readable, writable) => {
-      await user.setPassword(newPass);
-      await user.putDataBuffer(dataFromClient);
-      await user.save(writable);
-      res.status(200).json({
+      },
+    };
+  }
+  await upgradeLock();
+  const pWritable = getWritable();
+  await user.setPassword(newPass);
+  await user.putDataBuffer(dataFromClient);
+  await user.save(await pWritable);
+  state.completed = true;
+  return async () => {
+    res
+      .status(200)
+      .header(
+        'last-modified',
+        stringifyDateHeader(await fsSource.getMTime(path))
+      )
+      .json({
         type: 'SUCCESS',
-        message: 'successfully saved password table under a different password',
+        message: 'successfully saved password table',
       });
-      state.completed = true;
-      state.responded = true;
-    },
-    authErr: async (state, err) => {
-      res.status(400).json({
-        type: 'E_AUTH',
-        query_param: 'username|password',
-        message: 'username or password is incorrect',
-      });
-      state.responded = true;
-      if (err == null) {
-        console.log('auth error, username: ' + username);
-      } else {
-        console.error('internal server error');
-        console.error(err);
-      }
-    },
-  });
+    state.responded = true;
+  };
 }
