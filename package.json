@@ -16,11 +16,11 @@
     "singleQuote": true
   },
   "scripts": {
-    "build-client": "yarn run parcel build src/index.html",
-    "build-server": "yarn run tsc ./server/app.ts --target ES2020 --outDir ./dist-server --module commonjs",
-    "start-client": "yarn run parcel serve src/index.html",
-    "start-server": "yarn run build-server && node ./dist-server/app.js",
-    "start-testable": "NODE_ENV=development MODE=E2E_TESTING_MOCKED yarn run start-server",
-    "start": "yarn run start-server"
+    "build-client": "npx parcel build src/index.html",
+    "build-server": "npx tsc ./server/app.ts --target ES2020 --outDir ./dist-server --module commonjs",
+    "start-client": "npx parcel serve src/index.html",
+    "start-server": "npm run build-server && node ./dist-server/app.js",
+    "start-testable": "NODE_ENV=development MODE=E2E_TESTING_MOCKED npm run start-server",
+    "start": "npm run start-server"
   }
 }
